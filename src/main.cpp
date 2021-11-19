@@ -6,6 +6,7 @@
 #include "solver_config.h"
 
 #include <iostream>
+#include <ostream>
 
 #include <vector>
 #include <limits>
@@ -24,7 +25,7 @@
 using namespace std;
 
 
-void PrintdDNNF(shared_ptr<const dDNNFNode> node) {
+void PrintdDNNF(shared_ptr<const dDNNFNode> node, ostream &out) {
   unsigned long long idx = 1;
   stack<pair<shared_ptr<const dDNNFNode>, set<shared_ptr<const dDNNFNode>>::iterator>> s;
   s.push(make_pair(node, node->children.begin()));
@@ -38,27 +39,27 @@ void PrintdDNNF(shared_ptr<const dDNNFNode> node) {
       *cur->idx = idx++;
       switch(cur->type) {
         case dDNNFNode::TRUE:
-          cout << "A 0" << endl;
+          out << "A 0" << endl;
           break;
         case dDNNFNode::FALSE:
-          cout << "O 0 0" << endl;
+          out << "O 0 0" << endl;
           break;        
         case dDNNFNode::LIT:
-          cout << "L " << cur->literal << endl;
+          out << "L " << cur->literal << endl;
           break;
         case dDNNFNode::OR:
-          cout << "O 0 " << cur->children.size() << " ";
+          out << "O 0 " << cur->children.size() << " ";
           for(auto it2 : cur->children) {
-            cout << *it2->idx - 1 << " ";
+            out << *it2->idx - 1 << " ";
           }
-          cout << endl;
+          out << endl;
           break;        
         case dDNNFNode::AND:
-          cout << "A " << cur->children.size() << " ";
+          out << "A " << cur->children.size() << " ";
           for(auto it2 : cur->children) {
-            cout << *it2->idx - 1 << " ";
+            out << *it2->idx - 1 << " ";
           }
-          cout << endl;
+          out << endl;
           break;
         default:
           assert(0);
@@ -137,6 +138,9 @@ int main(int argc, char *argv[]) {
 
   int weighted = 0;
 
+  
+  ofstream ddnnf_fs;
+
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-WD") == 0) {
       assert(weighted == 0);
@@ -147,6 +151,12 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(argv[i], "-dDNNF") == 0) {
       assert(weighted == 0);
       weighted = 3;
+    } else if (strcmp(argv[i], "-dDNNF_out") == 0) {
+      if (argc <= i + 1) {
+        cout << " wrong parameters" << endl;
+        return -1;
+      }
+      ddnnf_fs.open(argv[++i], ios_base::out);
     } else if (strcmp(argv[i], "-tmpdir") == 0) {
       if (argc <= i + 1) {
         cout << " wrong parameters" << endl;
@@ -203,6 +213,8 @@ int main(int argc, char *argv[]) {
       input_file = argv[i];
     }
   }
+
+  ostream &ddnnf_out = ddnnf_fs.is_open()?ddnnf_fs:cout;
 
   assert(!tmp_dir.empty());
   assert(decot > 0.0001 && decot < 10000);
@@ -331,7 +343,7 @@ int main(int argc, char *argv[]) {
     if (ins.vars == 1 && ins.clauses.size() == 2) {
       PrintSat(false);
       PrintType(ins);
-      PrintdDNNF(shared_ptr<const dDNNFNode>(new dDNNFNode()));
+      PrintdDNNF(shared_ptr<const dDNNFNode>(new dDNNFNode()), ddnnf_out);
       return 0;
     }
     shared_ptr<dDNNFNode> ans0 = ins.weight_factor;
@@ -339,7 +351,7 @@ int main(int argc, char *argv[]) {
     if (ins.vars == 0) {
       PrintSat(true);
       PrintType(ins);
-      PrintdDNNF(ans0);
+      PrintdDNNF(ans0, ddnnf_out);
       return 0;
     }
     sspp::Graph primal(ins.vars, ins.clauses);
@@ -351,7 +363,7 @@ int main(int argc, char *argv[]) {
       theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
     }
     shared_ptr<const dDNNFNode> root = theSolver.solve(ins, tdecomp);
-    PrintdDNNF(*root*ans0);
+    PrintdDNNF(*root*ans0, ddnnf_out);
     cout<<"c o Solved. "<<glob_timer.get()<<endl;
     return 0;
   } else {
