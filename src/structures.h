@@ -121,11 +121,6 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
         if(other->type != TRUE) {
           ret->children.insert(other);
         }
-      } else if(type == TRUE) {
-        ret->type = other->type;
-        ret->literal = other->literal;
-        ret->children = other->children;
-        ret->has = other->has;
       } else {
         shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
         ret->type = AND;
@@ -179,11 +174,6 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
         if(other->type != TRUE) {
           children.insert(other);
         }
-      } else if(type == TRUE) {
-        type = other->type;
-        literal = other->literal;
-        children = other->children;
-        has = other->has;
       } else {
         shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
         type = AND;
