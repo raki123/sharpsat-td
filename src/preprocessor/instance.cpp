@@ -25,11 +25,13 @@ vector<string> Tokens(string t) {
 }
 } // namespace
 
-Var Instance::AddVar() {
+template<class T_num>
+Var Instance<T_num>::AddVar() {
 	return ++vars;
 }
 
-void Instance::AddClause(vector<Lit> clause) {
+template<class T_num>
+void Instance<T_num>::AddClause(vector<Lit> clause) {
 	assert(!clause.empty());
 	for (Lit l : clause) {
 		assert(1 <= VarOf(l) && VarOf(l) <= vars);
@@ -44,7 +46,8 @@ void Instance::AddClause(vector<Lit> clause) {
 	clauses.push_back(clause);
 }
 
-void Instance::AddLearnedClause(vector<Lit> clause) {
+template<class T_num>
+void Instance<T_num>::AddLearnedClause(vector<Lit> clause) {
 	assert(!clause.empty());
 	for (Lit l : clause) {
 		assert(1 <= VarOf(l) && VarOf(l) <= vars);
@@ -59,7 +62,8 @@ void Instance::AddLearnedClause(vector<Lit> clause) {
 	learned_clauses.push_back(clause);
 }
 
-void Instance::UpdClauseInfo() {
+template<class T_num>
+void Instance<T_num>::UpdClauseInfo() {
 	total_lits = 0;
 	unit_clauses = 0;
 	binary_clauses = 0;
@@ -78,7 +82,8 @@ void Instance::UpdClauseInfo() {
 	}
 }
 
-Instance::Instance(int vars_, vector<vector<Lit>> clauses_) : vars(vars_), clauses(clauses_) {
+template<class T_num>
+Instance<T_num>::Instance(int vars_, vector<vector<Lit>> clauses_) : vars(vars_), clauses(clauses_) {
 	UpdClauseInfo();
 	for (const auto& clause : clauses) {
 		for (int i = 0; i < (int)clause.size(); i++) {
@@ -91,9 +96,11 @@ Instance::Instance(int vars_, vector<vector<Lit>> clauses_) : vars(vars_), claus
 	}
 }
 
-Instance::Instance(int vars_) : vars(vars_) {}
+template<class T_num>
+Instance<T_num>::Instance(int vars_) : vars(vars_) {}
 
-Instance::Instance(string input_file, bool weighted_) {
+template<class T_num>
+Instance<T_num>::Instance(string input_file, bool weighted_) {
 	weighted = weighted_;
 	std::ifstream in(input_file);
 	string tmp;
@@ -110,11 +117,10 @@ Instance::Instance(string input_file, bool weighted_) {
 		} else if (weighted && format == 1 && tokens.size() == 6 && tokens[0] == "c" && tokens[1] == "p" && tokens[2] == "weight") {
 			assert(IsInt(tokens[3], -vars, vars));
 			int dlit = stoi(tokens[3]);
-			double w = stod(tokens[4]);
+			shared_ptr<T_num> w = T_num::FromString(tokens[4]);
 			assert(dlit != 0);
 			Lit lit = FromDimacs(dlit);
 			weights[lit] = w;
-			weights[Neg(lit)] = (double)1-w;
 			read_weights++;
 		} else if (tokens[0] == "c") {
 			continue;
@@ -125,7 +131,7 @@ Instance::Instance(string input_file, bool weighted_) {
 			if (weighted) {
 				weights.resize(vars*2+2);
 				for (int i = 0; i < (int)vars*2+2; i++) {
-					weights[i] = 1;
+					weights[i] = T_num::One();
 				}
 			}
 		} else if (format == 1 && IsInt(tokens[0])) {
@@ -145,10 +151,10 @@ Instance::Instance(string input_file, bool weighted_) {
 	}
 	if (weighted) {
 		for (int v = 1; v <= vars; v++) {
-			if (weights[PosLit(v)] == 0) {
+			if (weights[PosLit(v)]->IsAlgZero()) {
 				AddClause({NegLit(v)});
 			}
-			if (weights[NegLit(v)] == 0) {
+			if (weights[NegLit(v)]->IsAlgZero()) {
 				AddClause({PosLit(v)});
 			}
 		}
@@ -162,7 +168,8 @@ Instance::Instance(string input_file, bool weighted_) {
 	UpdClauseInfo();
 }
 
-void Instance::PrintInfo() const {
+template<class T_num>
+void Instance<T_num>::PrintInfo() const {
 	cerr<<"Vars: "<<vars<<endl;
 	cerr<<"Clauses: "<<clauses.size()<<endl;
 	cerr<<"Total literals: "<<total_lits<<endl;
@@ -171,7 +178,8 @@ void Instance::PrintInfo() const {
 	cerr<<endl;
 }
 
-void Instance::Print(std::ostream& out) const {
+template<class T_num>
+void Instance<T_num>::Print(std::ostream& out) const {
 	out<<"p cnf "<<vars<<" "<<clauses.size()<<endl;
 	for (const auto& clause : clauses) {
 		for (Lit lit : clause) {
@@ -181,7 +189,8 @@ void Instance::Print(std::ostream& out) const {
 	}
 }
 
-void Instance::Eliminate(Var var) {
+template<class T_num>
+void Instance<T_num>::Eliminate(Var var) {
 	vector<vector<Lit>> pos;
 	vector<vector<Lit>> neg;
 	for (int i = 0; i < (int)clauses.size(); i++) {

@@ -16,7 +16,7 @@ set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
 set(BUILD_SHARED_LIBS OFF)
 endif(STATIC)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -O3 -Wall -Wextra -Wshadow -g -Wfatal-errors -Wno-sign-compare -Wno-literal-suffix")
+set(CMAKE_CXX_FLAGS "-std=c++11 -O0 -Wall -Wextra -Wshadow -g -Wfatal-errors -Wno-sign-compare -Wno-literal-suffix")
 
 SET(CMAKE_C_FLAGS "-std=c99 -Wall -msse4.1 -mpclmul")
 
@@ -28,9 +28,6 @@ add_subdirectory(flowcutter)
 
 SET(SOURCES 
 	src/preprocessor/graph.cpp 
-	src/preprocessor/instance.cpp
-	src/preprocessor/oracle.cpp
-	src/preprocessor/preprocessor.cpp
 	src/preprocessor/subsumer.cpp
 	src/preprocessor/treewidth.cpp
 	src/preprocessor/twpp.cpp

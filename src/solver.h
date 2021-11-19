@@ -96,7 +96,7 @@ class Solver: public Instance<T_num> {
 public:
 	Solver(std::mt19937_64& gen) : hasher_(gen) {}
 
-	T_num solve(const sspp::Instance& pp_ins, const sspp::TreeDecomposition& tdec);
+	shared_ptr<const T_num> solve(const sspp::Instance<T_num>& pp_ins, const sspp::TreeDecomposition& tdec);
 
 	SolverConfiguration &config() {
 		return config_;
@@ -321,7 +321,7 @@ inline bool Solver<T_num>::setLiteralIfFree(LiteralID lit,
 		if (stack_.size() >= 2 && Instance<T_num>::lit_weights_.size() > 0) {
 			if (Instance<T_num>::dec_cands_[stack_.size()][lit.var()] == Instance<T_num>::dec_cands_[stack_.size()][0]) {
 				Instance<T_num>::lit_mul_[lit.var()] = true;
-				stack_.top().dec_weight *= Instance<T_num>::lit_weights_[lit];
+				*stack_.top().dec_weight *= Instance<T_num>::lit_weights_[lit];
 			}
 		}
 	}
@@ -332,7 +332,7 @@ template<typename T_num>
 inline void Solver<T_num>::unsetLiteral(LiteralID lit) {
 	if (Weighted()) {
 		if (stack_.size() >= 2 && Instance<T_num>::lit_mul_[lit.var()]) {
-			stack_.top().dec_weight /= Instance<T_num>::lit_weights_[lit];
+			*stack_.top().dec_weight /= Instance<T_num>::lit_weights_[lit];
 		}
 		Instance<T_num>::lit_mul_[lit.var()] = false;
 	}
@@ -438,7 +438,7 @@ void Solver<T_num>::HardWireAndCompact() {
 }
 
 template <class T_num>
-T_num Solver<T_num>::solve(const sspp::Instance& pp_ins, const sspp::TreeDecomposition& tdec) {
+shared_ptr<const T_num> Solver<T_num>::solve(const sspp::Instance<T_num>& pp_ins, const sspp::TreeDecomposition& tdec) {
 	stopwatch_.start();
 	Instance<T_num>::createfromPPIns(pp_ins);
 	initStack(Instance<T_num>::num_variables());

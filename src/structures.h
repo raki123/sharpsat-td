@@ -9,7 +9,9 @@
 #define STRUCTURES_H_
 
 #include <vector>
+#include <set>
 #include <iostream>
+#include <memory>
 #include <cmath>
 #include <limits>
 #include <cassert>
@@ -18,51 +20,41 @@
 #include "mpfr/mpreal.h"
 using namespace std;
 
-struct SDouble {
+struct SDouble : enable_shared_from_this<SDouble> {
  public:
   SDouble() {
     n = 0;
     has = false;
   }
-  void Init(double d) {
-    assert(d != 0);
-    n = d;
-    has = true;
-  }
-  SDouble(const SDouble& other) {
-    n = other.n;
-    has = other.has;
-  }
-  SDouble& operator=(const SDouble& other) {
-    n = other.n;
-    has = other.has;
-    return *this;
+  SDouble(shared_ptr<const SDouble> other) {
+    n = other->n;
+    has = other->has;
   }
   bool IsAlgZero() const {
     return !has;
   }
-  SDouble operator*(SDouble other) const {
-    SDouble ret = other;
-    ret.n *= n;
-    ret.has &= has;
+  shared_ptr<SDouble> operator*(shared_ptr<SDouble> other) const {
+    shared_ptr<SDouble> ret(new SDouble(other));
+    ret->n *= n;
+    ret->has &= has;
     return ret;
   }
-  SDouble operator+(SDouble other) const {
-    SDouble ret = other;
-    ret.n += n;
-    ret.has |= has;
+  shared_ptr<SDouble> operator+(shared_ptr<SDouble> other) const {
+    shared_ptr<SDouble> ret(new SDouble(other));
+    ret->n += n;
+    ret->has |= has;
     return ret;
   }
-  SDouble& operator*=(const SDouble& other) {
-    n *= other.n;
-    has &= other.has;
-    return *this;
+  shared_ptr<SDouble> operator*=(shared_ptr<const SDouble> other) {
+    n *= other->n;
+    has &= other->has;
+    return shared_from_this();
   }
-  SDouble& operator/=(const SDouble& other) {
-    assert(other.n != 0);
-    assert(other.has);
-    n /= other.n;
-    return *this;
+  shared_ptr<SDouble> operator/=(shared_ptr<const SDouble> other) {
+    assert(other->n != 0);
+    assert(other->has);
+    n /= other->n;
+    return shared_from_this();
   }
   size_t InternalSize() const {
     return 0;
@@ -70,18 +62,175 @@ struct SDouble {
   double Get() const {
     return n;
   }
-  static SDouble Zero() {
-    SDouble ret;
+  static shared_ptr<SDouble> Zero() {
+    shared_ptr<SDouble> ret(new SDouble());
     return ret;
   }
-  static SDouble One() {
-    SDouble ret;
-    ret.n = 1;
-    ret.has = true;
+  static shared_ptr<SDouble> One() {
+    shared_ptr<SDouble> ret(new SDouble());
+    ret->n = 1;
+    ret->has = true;
     return ret;
+  }  
+  static shared_ptr<SDouble> FromString(string s){
+    shared_ptr<SDouble> ret(new SDouble());
+    ret->n = stod(s);
+    ret->has = ret->n != 0;
   }
  private:
   double n = 0;
+  bool has = false;
+};
+
+
+struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
+ static const int TRUE = 0;
+ static const int FALSE = 1;
+ static const int LIT = 2;
+ static const int AND = 3;
+ static const int OR = 4;
+ public:
+  dDNNFNode() {
+    idx = new unsigned long long();
+    type = FALSE;
+    literal = 0;
+    has = false;
+    children = set<shared_ptr<const dDNNFNode>>();
+  }
+  dDNNFNode(shared_ptr<const dDNNFNode> other) {
+    idx = new unsigned long long();
+    type = other->type;
+    literal = other->literal;
+    children = other->children;
+    has = other->has;
+  }
+
+  bool IsAlgZero() const {
+    return type == FALSE;
+  }
+  shared_ptr<dDNNFNode> operator*(shared_ptr<dDNNFNode> other) const {
+    shared_ptr<dDNNFNode> ret(new dDNNFNode(shared_from_this()));
+    if(other->type == FALSE) {
+      ret->type = FALSE;
+      ret->literal = 0;
+      ret->children.clear();
+      ret->has = false;
+    } else if(type != FALSE) {
+      if(type == AND) {
+        if(other->type != TRUE) {
+          ret->children.insert(other);
+        }
+      } else if(type == TRUE) {
+        ret->type = other->type;
+        ret->literal = other->literal;
+        ret->children = other->children;
+        ret->has = other->has;
+      } else {
+        shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
+        ret->type = AND;
+        ret->literal = 0;
+        ret->children.clear();
+        ret->children.insert({ child, other });
+        ret->has = true;
+      }
+    }
+    return ret;
+  }
+  shared_ptr<dDNNFNode> operator+(shared_ptr<const dDNNFNode> other) const {
+    if(other->type == TRUE) {
+      shared_ptr<dDNNFNode> ret(new dDNNFNode());
+      ret->type = TRUE;
+      ret->has = true;
+      return ret;
+    } 
+    if(type != TRUE) {    
+      if(type == OR) {
+        shared_ptr<dDNNFNode> ret(new dDNNFNode(shared_from_this()));
+        if(other->type != FALSE) {
+          ret->children.insert(other);
+        }
+        return ret;
+      } 
+      if(type == FALSE) {
+        shared_ptr<dDNNFNode> ret(new dDNNFNode(other));
+        return ret;
+      } else {
+        shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
+        shared_ptr<dDNNFNode> ret(new dDNNFNode());
+        ret->type = OR;
+        ret->literal = 0;
+        ret->children.insert({ child, other });
+        ret->has = true;
+        return ret;
+      }
+    }
+    shared_ptr<dDNNFNode> ret(new dDNNFNode(shared_from_this()));
+    return ret;
+  }
+  shared_ptr<dDNNFNode> operator*=(shared_ptr<const dDNNFNode> other) {
+    if(other->type == FALSE) {
+      type = FALSE;
+      literal = 0;
+      children.clear();
+      has = false;
+    } else if(type != FALSE) {
+      if(type == AND) {
+        if(other->type != TRUE) {
+          children.insert(other);
+        }
+      } else if(type == TRUE) {
+        type = other->type;
+        literal = other->literal;
+        children = other->children;
+        has = other->has;
+      } else {
+        shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
+        type = AND;
+        literal = 0;
+        children.clear();
+        children.insert({ child, other });
+        has = true;
+      }
+    }
+    return shared_from_this();
+  }
+  shared_ptr<dDNNFNode> operator/=(shared_ptr<const dDNNFNode> other) {
+    assert(other->type >= 2);
+    assert(other->has);
+    assert(type == AND);
+    auto it = children.find(other);
+    assert(it != children.end());
+    children.erase(it);
+    assert(idx != nullptr);
+    return shared_from_this();
+  }
+  size_t InternalSize() const {
+    return 0;
+  }
+  static shared_ptr<dDNNFNode> Zero() {
+    shared_ptr<dDNNFNode> ret(new dDNNFNode());
+    ret->idx = new unsigned long long();
+    return ret;
+  }
+  static shared_ptr<dDNNFNode> One() {
+    shared_ptr<dDNNFNode> ret(new dDNNFNode());
+    ret->idx = new unsigned long long();
+    ret->type = TRUE;
+    ret->has = true;
+    return ret;
+  }
+  static shared_ptr<dDNNFNode> FromString(string s) {
+    shared_ptr<dDNNFNode> ret(new dDNNFNode());
+    ret->idx = new unsigned long long();
+    ret->type = LIT;
+    ret->has = true;
+    ret->literal = stol(s);
+    return ret;
+  }
+  unsigned long long *idx = new unsigned long long();
+  int type = 0;
+  long literal = 0;
+  set<shared_ptr<const dDNNFNode>> children = set<shared_ptr<const dDNNFNode>>();
   bool has = false;
 };
 
@@ -90,11 +239,6 @@ struct Smpr {
   Smpr() {
     n = 0;
     has = false;
-  }
-  void Init(double d) {
-    assert(d != 0);
-    n = d;
-    has = true;
   }
   Smpr(const Smpr& other) {
     n = other.n;
@@ -147,6 +291,11 @@ struct Smpr {
     ret.has = true;
     return ret;
   }
+  static Smpr FromString(string s){
+    Smpr ret;
+    ret.n = stod(s);
+    ret.has = ret.n != 0;
+  }
  private:
   mpfr::mpreal n = 0;
   bool has = false;
@@ -157,11 +306,6 @@ struct Smpz {
   Smpz() {
     n = 0;
     has = false;
-  }
-  void Init(double d) {
-    assert(d == 1 || d == -1);
-    n = (int)d;
-    has = true;
   }
   Smpz(const Smpz& other) {
     n = other.n;
@@ -216,6 +360,11 @@ struct Smpz {
     ret.n = 1;
     ret.has = true;
     return ret;
+  }
+  static Smpz FromString(string s){
+    Smpz ret;
+    ret.n = stoi(s);
+    ret.has = ret.n != 0;
   }
  private:
   mpz_class n = 0;

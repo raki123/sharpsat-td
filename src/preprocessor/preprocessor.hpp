@@ -6,10 +6,11 @@
 #include <map>
 
 namespace sspp {
+template<class T_num>
 class Preprocessor {
  public:
- 	Instance Preprocess(Instance ins, const string& techniques);
- 	Instance Preprocess(int vars_, vector<vector<Lit>> clauses_, string techniques);
+ 	Instance<T_num> Preprocess(Instance<T_num> ins, const string& techniques);
+ 	Instance<T_num> Preprocess(int vars_, vector<vector<Lit>> clauses_, string techniques);
  	int FreeVars() const;
  	void SetMaxGTime(double time);
  	void SetMaxSparsTime(double time);
@@ -18,8 +19,8 @@ class Preprocessor {
  	bool EliminateDefSimplicial();
  	void MergeAdjEquivs();
   void Sparsify();
- 	Instance MapBack();
- 	Instance UnsatInst();
+ 	Instance<T_num> MapBack();
+ 	Instance<T_num> UnsatInst();
  	void BackBone();
  	void PropStren();
  	void Subsume();
@@ -38,7 +39,7 @@ class Preprocessor {
  	bool unsat = false;
 
  	bool weighted = false;
- 	vector<double> weights;
+ 	vector<shared_ptr<T_num>> weights;
  	int free_vars = 0;
 
  	double max_g_time = 1e9;
@@ -74,3 +75,5 @@ inline bool ValidTechniques(const string& techniques, bool weighted) {
 	return d == 0;
 }
 } // namespace sspp
+
+#include "preprocessor.cpp"

@@ -102,7 +102,7 @@ public:
 
 
   // store the number in model_count as the model count of CacheEntryID id
-  inline void storeValueOf(CacheEntryID id, const T_num &model_count);
+  inline void storeValueOf(CacheEntryID id, shared_ptr<const T_num> model_count);
 
   bool deleteEntries();
 
@@ -306,7 +306,7 @@ void ComponentCache<T_num>::removeFromDescendantsTree(CacheEntryID id) {
 }
 
 template <class T_num>
-void ComponentCache<T_num>::storeValueOf(CacheEntryID id, const T_num &model_count) {
+void ComponentCache<T_num>::storeValueOf(CacheEntryID id, shared_ptr<const T_num> model_count) {
   considerCacheResize();
   unsigned table_ofs = tableEntry(id);
   // when storing the new model count the size of the model count

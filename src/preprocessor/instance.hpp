@@ -8,6 +8,7 @@
 #include "../mpfr/mpreal.h"
 
 namespace sspp {
+template<class T_num>
 struct Instance {
 	Instance(string input_file, bool weighted_);
 	Instance(int vars_);
@@ -30,9 +31,9 @@ struct Instance {
 	vector<vector<Lit>> learned_clauses;
 
 	bool weighted = false;
-	mpfr::mpreal weight_factor = 1;
+	shared_ptr<T_num> weight_factor = T_num::One();
 
-  vector<double> weights;
+  vector<shared_ptr<T_num>> weights;
   int total_lits = 0;
  private:
  	Lit RecConstruct(vector<Lit> clause);
@@ -41,3 +42,5 @@ struct Instance {
 	int binary_clauses = 0;
 };
 } // namespace sspp
+
+#include "instance.cpp"

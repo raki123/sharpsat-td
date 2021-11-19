@@ -8,27 +8,31 @@
 namespace sspp {
 using oracle::Oracle;
 
-Instance Preprocessor::UnsatInst() {
+template<class T_num>
+Instance<T_num> Preprocessor<T_num>::UnsatInst() {
 	cout<<"c o UNSAT"<<endl;
-	Instance ins(1);
+	Instance<T_num> ins(1);
 	ins.AddClause({NegLit(1)});
 	ins.AddClause({PosLit(1)});
 	if (weighted) {
 		ins.weighted = true;
-		ins.weights = {0, 0, 0.5, 0.5};
+		ins.weights = {T_num::Zero(), T_num::Zero(), T_num::Zero(), T_num::Zero()};
 	}
 	return ins;
 }
 
-void Preprocessor::SetMaxGTime(double time) {
+template<class T_num>
+void Preprocessor<T_num>::SetMaxGTime(double time) {
 	max_g_time = time;
 }
 
-void Preprocessor::SetMaxSparsTime(double time) {
+template<class T_num>
+void Preprocessor<T_num>::SetMaxSparsTime(double time) {
 	max_s_time = time;
 }
 
-void Preprocessor::MapClauses(vector<vector<Lit>>& cls, Var& nvars, vector<Var>& map_to) {
+template<class T_num>
+void Preprocessor<T_num>::MapClauses(vector<vector<Lit>>& cls, Var& nvars, vector<Var>& map_to) {
 	for (int i = 0; i < (int)cls.size(); i++) {
 		auto& clause = cls[i];
 		bool sat = false;
@@ -67,7 +71,8 @@ void Preprocessor::MapClauses(vector<vector<Lit>>& cls, Var& nvars, vector<Var>&
 	}
 }
 
-void Preprocessor::TakeUnits(vector<vector<Lit>>& cls) {
+template<class T_num>
+void Preprocessor<T_num>::TakeUnits(vector<vector<Lit>>& cls) {
 	for (int i = 0; i < (int)cls.size(); i++) {
 		const auto& clause = cls[i];
 		for (int j = 1; j < (int)clause.size(); j++) {
@@ -103,7 +108,8 @@ void Preprocessor::TakeUnits(vector<vector<Lit>>& cls) {
 	}
 }
 
-void Preprocessor::Tighten(bool loop) {
+template<class T_num>
+void Preprocessor<T_num>::Tighten(bool loop) {
 	SortAndDedup(clauses);
 	SortAndDedup(learned_clauses);
 	TakeUnits(clauses);
@@ -148,14 +154,16 @@ void Preprocessor::Tighten(bool loop) {
 	}
 }
 
-Instance Preprocessor::Preprocess(Instance inst, const string& techniques) {
+template<class T_num>
+Instance<T_num> Preprocessor<T_num>::Preprocess(Instance<T_num> inst, const string& techniques) {
 	weighted = inst.weighted;
 	weights = inst.weights;
 	return Preprocess(inst.vars, inst.clauses, techniques);
 }
 
-void Preprocessor::FailedLiterals() {
-	Oracle oracle(vars, clauses, learned_clauses);
+template<class T_num>
+void Preprocessor<T_num>::FailedLiterals() {
+	Oracle<T_num> oracle(vars, clauses, learned_clauses);
 	for (Lit lit = 2; lit <= vars*2+1; lit++) {
 		if (oracle.FalseByProp({lit})) {
 			oracle.FreezeUnit(Neg(lit));
@@ -166,7 +174,8 @@ void Preprocessor::FailedLiterals() {
 	Subsume();
 }
 
-void Preprocessor::Subsume() {
+template<class T_num>
+void Preprocessor<T_num>::Subsume() {
 	Subsumer subsumer;
 	clauses = subsumer.Subsume(clauses);
 	SortAndDedup(clauses);
@@ -189,12 +198,14 @@ void Preprocessor::Subsume() {
 	}
 }
 
-int Preprocessor::FreeVars() const {
+template<class T_num>
+int Preprocessor<T_num>::FreeVars() const {
 	return free_vars;
 }
 
-void Preprocessor::PropStren() {
-	Oracle oracle(vars, clauses, learned_clauses);
+template<class T_num>
+void Preprocessor<T_num>::PropStren() {
+	Oracle<T_num> oracle(vars, clauses, learned_clauses);
 	bool found = true;
 	while (found) {
 		found = false;
@@ -217,8 +228,9 @@ void Preprocessor::PropStren() {
 	Subsume();
 }
 
-void Preprocessor::BackBone() {
-	Oracle oracle(vars, clauses, learned_clauses);
+template<class T_num>
+void Preprocessor<T_num>::BackBone() {
+	Oracle<T_num> oracle(vars, clauses, learned_clauses);
 	bool sat = false;
 	for (int i = 0; i < (int)clauses.size(); i++) {
 		for (int j = 0; j < (int)clauses[i].size(); j++) {
@@ -258,10 +270,11 @@ void Preprocessor::BackBone() {
 	Subsume();
 }
 
-Instance Preprocessor::MapBack() {
+template<class T_num>
+Instance<T_num> Preprocessor<T_num>::MapBack() {
 	if (unsat) return UnsatInst();
 	assert(var_map.size() == (size_t)vars+1);
-	Instance ret(vars);
+	Instance<T_num> ret(vars);
 	for (const auto& clause : clauses) {
 		assert(clause.size() >= 2);
 		ret.AddClause(clause);
@@ -279,7 +292,7 @@ Instance Preprocessor::MapBack() {
 	if (weighted) {
 		ret.weighted = true;
 		ret.weights.resize(vars*2+2);
-		ret.weight_factor = 1;
+		ret.weight_factor = T_num::One();
 		for (Var v = 1; v <= vars; v++) {
 			Var ov = var_map[v];
 			assert(ov <= orig_vars && ov >= 1);
@@ -301,14 +314,14 @@ Instance Preprocessor::MapBack() {
 			if (assign[v]) {
 				assert(!used[v]);
 				if (assign[v] == 1) {
-					ret.weight_factor *= weights[PosLit(v)];
+					*ret.weight_factor *= weights[PosLit(v)];
 				} else if (assign[v] == 2) {
-					ret.weight_factor *= weights[NegLit(v)];
+					*ret.weight_factor *= weights[NegLit(v)];
 				} else {
 					assert(0);
 				}
 			} else if (!used[v]) {
-				ret.weight_factor *= (weights[PosLit(v)] + weights[NegLit(v)]);
+				*ret.weight_factor *= (*weights[PosLit(v)] + weights[NegLit(v)]);
 			}
 		}
 	}
@@ -316,7 +329,8 @@ Instance Preprocessor::MapBack() {
 	return ret;
 }
 
-void Preprocessor::Sparsify() {
+template<class T_num>
+void Preprocessor<T_num>::Sparsify() {
 	s_timer.start();
 	vector<vector<int>> edgew(vars+1);
 	for (Var i = 1; i <= vars; i++) {
@@ -359,7 +373,7 @@ void Preprocessor::Sparsify() {
 	}
 	cs.clear();
 	// TODO: optimize
-	Oracle oracle(vars+(int)clauses.size(), {});
+	Oracle<T_num> oracle(vars+(int)clauses.size(), {});
 	for (int i = 0; i < (int)clauses.size(); i++) {
 		vector<Lit> clause = clauses[i];
 		clause.push_back(PosLit(vars+1+i));
@@ -388,7 +402,8 @@ void Preprocessor::Sparsify() {
 	s_timer.stop();
 }
 
-void Preprocessor::eqdfs(Lit lit, Lit e, const vector<vector<Lit>>& eq, vector<Lit>& eqc) {
+template<class T_num>
+void Preprocessor<T_num>::eqdfs(Lit lit, Lit e, const vector<vector<Lit>>& eq, vector<Lit>& eqc) {
 	if (eqc[lit]) {
 		assert(eqc[lit] == e);
 		return;
@@ -399,7 +414,8 @@ void Preprocessor::eqdfs(Lit lit, Lit e, const vector<vector<Lit>>& eq, vector<L
 	}
 }
 
-void Preprocessor::MergeAdjEquivs() {
+template<class T_num>
+void Preprocessor<T_num>::MergeAdjEquivs() {
 	vector<vector<char>> pg(vars+1);
 	for (Var v = 1; v <= vars; v++) {
 		pg[v].resize(vars+1);
@@ -415,7 +431,7 @@ void Preprocessor::MergeAdjEquivs() {
 			}
 		}
 	}
-	Oracle oracle(vars, clauses, learned_clauses);
+	Oracle<T_num> oracle(vars, clauses, learned_clauses);
 	vector<vector<Lit>> eq(vars*2+2);
 	for (Var v1 = 1; v1 <= vars; v1++) {
 		for (Var v2 = v1+1; v2 <= vars; v2++) {
@@ -474,7 +490,8 @@ void Preprocessor::MergeAdjEquivs() {
 	Subsume();
 }
 
-bool Preprocessor::EliminateDefSimplicial() {
+template<class T_num>
+bool Preprocessor<T_num>::EliminateDefSimplicial() {
 	g_timer.start();
 	Graph graph(vars, clauses);
 	TWPP twpp;
@@ -513,7 +530,7 @@ bool Preprocessor::EliminateDefSimplicial() {
 				return false;
 			}
 		}
-		Oracle oracle(vars + 2*simps, {});
+		Oracle<T_num> oracle(vars + 2*simps, {});
 		for (const auto& cls : {clauses, learned_clauses}) {
 			for (const auto& clause : cls) {
 				oracle.AddClause(clause, false);
@@ -647,7 +664,8 @@ bool Preprocessor::EliminateDefSimplicial() {
 	g_timer.stop();
 }
 
-bool Preprocessor::DoTechniques(const string& techniques, int l, int r) {
+template<class T_num>
+bool Preprocessor<T_num>::DoTechniques(const string& techniques, int l, int r) {
 	if (unsat || vars == 0) return true;
 	if (l > r) return true;
 	bool fixpoint = true;
@@ -700,10 +718,8 @@ bool Preprocessor::DoTechniques(const string& techniques, int l, int r) {
 	return fixpoint;
 }
 
-Instance Preprocessor::Preprocess(int vars_, vector<vector<Lit>> clauses_, string techniques) {
-	if (techniques.empty() || techniques[0] != 'F') {
-		techniques = "F" + techniques;
-	}
+template<class T_num>
+Instance<T_num> Preprocessor<T_num>::Preprocess(int vars_, vector<vector<Lit>> clauses_, string techniques) {
 	assert(ValidTechniques(techniques, weighted));
 	assert(orig_vars == 0);
 	vars = vars_;

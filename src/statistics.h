@@ -139,7 +139,7 @@ public:
   unsigned long cache_MB_memory_usage() {
       return cache_bytes_memory_usage() / 1000000;
   }
-  T_num final_solution_count_ = T_num::Zero();
+  shared_ptr<const T_num> final_solution_count_ = T_num::Zero();
 
   double implicitBCP_miss_rate() {
       if(num_failed_literal_tests_ == 0) return 0.0;
@@ -156,9 +156,9 @@ public:
     return 10000 + 10 * times_conflict_clauses_cleaned_;
   }
 
-  void set_final_solution_count(const T_num &count);
+  void set_final_solution_count(shared_ptr<const T_num> count);
 
-  const T_num &final_solution_count() const {
+  shared_ptr<const T_num> final_solution_count() const {
     return final_solution_count_;
   }
 
@@ -239,7 +239,7 @@ public:
 using namespace std;
 
 template<typename T_num>
-inline void DataAndStatistics<T_num>::set_final_solution_count(const T_num &count) {
+inline void DataAndStatistics<T_num>::set_final_solution_count(shared_ptr<const T_num> count) {
   assert(num_variables_ == num_used_variables_);
   final_solution_count_ = count;
 }

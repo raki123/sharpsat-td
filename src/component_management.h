@@ -28,7 +28,7 @@ class ComponentManager {
 public:
   ComponentManager(SolverConfiguration &config, DataAndStatistics<T_num> &statistics,
         LiteralIndexedVector<TriValue> & lit_values,
-        LiteralIndexedVector<T_num> & lit_weights) :
+        LiteralIndexedVector<shared_ptr<T_num>> & lit_weights) :
         config_(config), statistics_(statistics), cache_(statistics),
         ana_(statistics,lit_values,lit_weights) {
   }
@@ -40,7 +40,7 @@ public:
       return ana_.scoreOf(v);
   }
 
-  void cacheModelCountOf(unsigned stack_comp_id, const T_num &value) {
+  void cacheModelCountOf(unsigned stack_comp_id, shared_ptr<const T_num> value) {
     cache_.storeValueOf(component_stack_[stack_comp_id]->id(), value);
   }
 

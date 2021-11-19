@@ -83,7 +83,7 @@ protected:
   }
 
   bool createfromFile(const string &file_name);
-  bool createfromPPIns(const sspp::Instance& pp_ins);
+  bool createfromPPIns(const sspp::Instance<T_num>& pp_ins);
 
   DataAndStatistics<T_num> statistics_;
 
@@ -103,7 +103,7 @@ protected:
 
   LiteralIndexedVector<vector<ClauseOfs> > occurrence_lists_;
 
-  LiteralIndexedVector<T_num> lit_weights_;
+  LiteralIndexedVector<shared_ptr<T_num>> lit_weights_;
   vector<char> lit_mul_;
   vector<vector<unsigned long>> dec_cands_;
 
@@ -236,7 +236,7 @@ protected:
     return false;
   }
 
-  void LoadWeights(const sspp::Instance& pp_ins, const unsigned int nVars);
+  void LoadWeights(const sspp::Instance<T_num>& pp_ins, const unsigned int nVars);
 
 protected:
   vector<float> extra_score;
@@ -671,7 +671,7 @@ bool Instance<T_num>::createfromFile(const string &file_name) {
 }
 
 template <class T_num>
-bool Instance<T_num>::createfromPPIns(const sspp::Instance& pp_ins) {
+bool Instance<T_num>::createfromPPIns(const sspp::Instance<T_num>& pp_ins) {
   unsigned int nVars, nCls;
   /*
   int lit;
@@ -761,13 +761,13 @@ bool Instance<T_num>::createfromPPIns(const sspp::Instance& pp_ins) {
 }
 
 template<typename T_num>
-inline void Instance<T_num>::LoadWeights(const sspp::Instance& pp_ins, const unsigned int nVars) {
+inline void Instance<T_num>::LoadWeights(const sspp::Instance<T_num>& pp_ins, const unsigned int nVars) {
   assert(pp_ins.weighted);
   lit_weights_.resize(nVars + 1);
   lit_mul_.resize(nVars+1);
   for (int v = 1; v <= nVars; v++) {
-    lit_weights_[LiteralID(-v)].Init(pp_ins.weights[sspp::NegLit(v)]);
-    lit_weights_[LiteralID(v)].Init(pp_ins.weights[sspp::PosLit(v)]);
+    lit_weights_[LiteralID(-v)] = pp_ins.weights[sspp::NegLit(v)];
+    lit_weights_[LiteralID(v)] = pp_ins.weights[sspp::PosLit(v)];
   }
 }
 

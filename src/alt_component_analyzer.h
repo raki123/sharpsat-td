@@ -27,7 +27,7 @@ class AltComponentAnalyzer {
 public:
 	AltComponentAnalyzer(DataAndStatistics<T_num> &statistics,
         LiteralIndexedVector<TriValue> & lit_values,
-        const LiteralIndexedVector<T_num> & lit_weights) :
+        const LiteralIndexedVector<shared_ptr<T_num>> & lit_weights) :
         statistics_(statistics), literal_values_(lit_values), lit_weights_(lit_weights) {
   }
 
@@ -132,9 +132,10 @@ private:
 
   LiteralIndexedVector<TriValue> & literal_values_;
 
-  const LiteralIndexedVector<T_num> & lit_weights_;
+  const LiteralIndexedVector<shared_ptr<T_num>> & lit_weights_;
 
-  inline T_num LitWeight(const LiteralID lit) {
+
+  inline shared_ptr<T_num> LitWeight(const LiteralID lit) {
     if (lit_weights_.empty()) {
       return T_num::One();
     } else {
@@ -327,7 +328,7 @@ inline bool AltComponentAnalyzer<T_num>::exploreRemainingCompOf(VariableIndex v)
   recordComponentOf(v);
 
   if (search_stack_.size() == 1) {
-    T_num iw = LitWeight(LiteralID(v, true)) + LitWeight(LiteralID(v, false));
+    shared_ptr<T_num> iw = *LitWeight(LiteralID(v, true)) + LitWeight(LiteralID(v, false));
     archetype_.stack_level().includeSolution(iw);
     archetype_.setVar_in_other_comp(v);
     return false;

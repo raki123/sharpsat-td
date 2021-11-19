@@ -40,9 +40,10 @@ struct CInfo {
 	bool Keep() const;
 };
 
+template<class T_num>
 class Oracle {
  public:
- 	Oracle(const Instance& inst);
+ 	Oracle(const Instance<T_num>& inst);
  	Oracle(int vars_, const vector<vector<Lit>>& clauses_);
   Oracle(int vars_, const vector<vector<Lit>>& clauses_, const vector<vector<Lit>>& learned_clauses_);
 
@@ -146,3 +147,5 @@ class Oracle {
 };
 } // namespace oracle
 } // namespace sspp
+
+#include "oracle.cpp"

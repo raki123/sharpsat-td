@@ -23,7 +23,7 @@ public:
   const unsigned literal_stack_ofs_ = 0;
 
   //  Solutioncount
-  T_num branch_model_count_[2] = {T_num::Zero(), T_num::Zero()};
+  shared_ptr<T_num> branch_model_count_[2] = {T_num::Zero(), T_num::Zero()};
   bool branch_found_unsat_[2] = {false,false};
 
   /// remaining Components
@@ -41,7 +41,7 @@ public:
   // in [unprocessed_components_end_, component_stack.size())
   unsigned unprocessed_components_end_ = 0;
 
-  T_num dec_weight = T_num::One();
+  shared_ptr<T_num> dec_weight = T_num::One();
 
   bool hasUnprocessedComponents() {
     assert(unprocessed_components_end_ >= remaining_components_ofs_);
@@ -95,7 +95,7 @@ public:
     return literal_stack_ofs_;
   }
 
-  void includeSolution(const T_num &solutions);
+  void includeSolution(shared_ptr<const T_num> solutions);
 
   bool branch_found_unsat() const;
   void mark_branch_unsat() {
@@ -108,7 +108,7 @@ public:
 //	  branch_model_count_[0] = branch_model_count_[1] = 0;
 //	  active_branch_ = 1;
 //  }
-  const T_num getTotalModelCount() const;
+  shared_ptr<const T_num> getTotalModelCount() const;
 };
 
 template<typename T_num>
@@ -118,25 +118,25 @@ inline bool StackLevel<T_num>::branch_found_unsat() const {
 
 
 template <typename T_num>
-inline void StackLevel<T_num>::includeSolution(const T_num &solutions) {
+inline void StackLevel<T_num>::includeSolution(shared_ptr<const T_num> solutions) {
   if (branch_found_unsat_[active_branch_]) {
-    assert(branch_model_count_[active_branch_].IsAlgZero());
+    assert(branch_model_count_[active_branch_]->IsAlgZero());
     return;
   }
-  if (solutions.IsAlgZero()) {
+  if (solutions->IsAlgZero()) {
     branch_found_unsat_[active_branch_] = true;
   }
-  if (branch_model_count_[active_branch_].IsAlgZero()) {
-    branch_model_count_[active_branch_] = solutions * dec_weight;
+  if (branch_model_count_[active_branch_]->IsAlgZero()) {
+    branch_model_count_[active_branch_] = *solutions * dec_weight;
   }
   else {
-    branch_model_count_[active_branch_] *= solutions;
+    *branch_model_count_[active_branch_] *= solutions;
   }
 }
 
 template <typename T_num>
-const inline T_num StackLevel<T_num>::getTotalModelCount() const {
-  return branch_model_count_[0] + branch_model_count_[1];
+inline shared_ptr<const T_num> StackLevel<T_num>::getTotalModelCount() const {
+  return *branch_model_count_[0] + branch_model_count_[1];
 }
 
 template<class T_num>

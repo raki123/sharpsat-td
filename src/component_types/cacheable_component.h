@@ -48,7 +48,7 @@ public:
     return creation_time_;
   }
   
-  const T_num &model_count() const {
+  shared_ptr<const T_num> model_count() const {
     return model_count_;
   }
 
@@ -56,7 +56,7 @@ public:
     creation_time_ = time;
   }
 
-  void set_model_count(const T_num &rn, unsigned time) {
+  void set_model_count(shared_ptr<const T_num> rn, unsigned time) {
     model_count_ = rn;
     length_solution_period_and_flags_ = (time - creation_time_) | (length_solution_period_and_flags_ & 1);
   }
@@ -78,12 +78,12 @@ public:
   }
 
   unsigned long SizeInBytes() const {
-    return sizeof(CacheableComponent) + model_count_.InternalSize();
+    return sizeof(CacheableComponent) + model_count_->InternalSize();
   }
 
   // TODO make this correct?
   unsigned long sys_overhead_SizeInBytes() const {
-    return sizeof(CacheableComponent) + model_count_.InternalSize() + 48;
+    return sizeof(CacheableComponent) + model_count_->InternalSize() + 48;
   }
 
   // BEGIN Cache Pollution Management
@@ -121,7 +121,7 @@ private:
   HashType clhashkey_;
   unsigned num_variables_ = 0;
 
-  T_num model_count_;
+  shared_ptr<const T_num>  model_count_;
 
   unsigned creation_time_ = 1;
   // this is:  length_solution_period = length_solution_period_and_flags_ >> 1
