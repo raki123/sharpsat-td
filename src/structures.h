@@ -85,15 +85,13 @@ struct SDouble : enable_shared_from_this<SDouble> {
 
 
 struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
- static const int TRUE = 0;
- static const int FALSE = 1;
- static const int LIT = 2;
- static const int AND = 3;
- static const int OR = 4;
+ static const int LIT = 0;
+ static const int AND = 1;
+ static const int OR = 2;
  public:
   dDNNFNode() {
     idx = new unsigned long long();
-    type = FALSE;
+    type = OR;
     literal = 0;
     children = set<shared_ptr<const dDNNFNode>>();
   }
@@ -105,72 +103,71 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
   }
 
   bool IsAlgZero() const {
-    return type == FALSE;
+    return type == OR && children.empty();
   }
   shared_ptr<dDNNFNode> operator*(shared_ptr<dDNNFNode> other) const {
     shared_ptr<dDNNFNode> ret(new dDNNFNode(shared_from_this()));
-    if(other->type == FALSE) {
-      ret->type = FALSE;
+    if(other->IsAlgZero()) {
+      ret->type = OR;
       ret->literal = 0;
       ret->children.clear();
-    } else if(type != FALSE) {
-      if(type == AND) {
-        if(other->type != TRUE) {
-          ret->children.insert(other);
-        }
-      } else {
-        shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
-        ret->type = AND;
-        ret->literal = 0;
-        ret->children.clear();
-        ret->children.insert({ child, other });
+    } else if(!IsAlgZero()) {
+      if(other->type != AND || !other->children.empty()) {
+        if(type == AND) {
+            ret->children.insert(other);
+        } else {
+          shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
+          ret->type = AND;
+          ret->literal = 0;
+          ret->children.clear();
+          ret->children.insert({ child, other });
+      }
       }
     }
     return ret;
   }
   shared_ptr<dDNNFNode> operator+(shared_ptr<const dDNNFNode> other) const {
     shared_ptr<dDNNFNode> ret(new dDNNFNode(shared_from_this()));
-    if(other->type == TRUE) {
-      ret->type = TRUE;
+    if(other->type == AND && other->children.empty()) {
+      ret->type = AND;
       ret->literal = 0;
       ret->children.clear();
-    } else if(type != TRUE) {    
-      if(type == OR) {
-        if(other->type != FALSE) {
-          ret->children.insert(other);
-        }
-      } else {
-        shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
-        ret->type = OR;
-        ret->literal = 0;
-        ret->children.clear();
-        ret->children.insert({ child, other });
+    } else if(type != AND || !children.empty()) {   
+      if(!other->IsAlgZero()) { 
+        if(type == OR) {
+            ret->children.insert(other);
+        } else {
+          shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
+          ret->type = OR;
+          ret->literal = 0;
+          ret->children.clear();
+          ret->children.insert({ child, other });
+        }        
       }
     }
     return ret;
   }
   shared_ptr<dDNNFNode> operator*=(shared_ptr<const dDNNFNode> other) {
-    if(other->type == FALSE) {
-      type = FALSE;
+    if(other->IsAlgZero()) {
+      type = OR;
       literal = 0;
       children.clear();
-    } else if(type != FALSE) {
-      if(type == AND) {
-        if(other->type != TRUE) {
-          children.insert(other);
+    } else if(!IsAlgZero()) {
+      if(other->type != AND || !other->children.empty()) {
+        if(type == AND) {
+            children.insert(other);
+        } else {
+          shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
+          type = AND;
+          literal = 0;
+          children.clear();
+          children.insert({ child, other });
         }
-      } else {
-        shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
-        type = AND;
-        literal = 0;
-        children.clear();
-        children.insert({ child, other });
       }
     }
     return shared_from_this();
   }
   shared_ptr<dDNNFNode> operator/=(shared_ptr<const dDNNFNode> other) {
-    assert(other->type >= 2);
     assert(type == AND);
     auto it = children.find(other);
     assert(it != children.end());
@@ -186,7 +183,7 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
   }
   static shared_ptr<dDNNFNode> One() {
     shared_ptr<dDNNFNode> ret(new dDNNFNode());
-    ret->type = TRUE;
+    ret->type = AND;
     return ret;
   }
   static shared_ptr<dDNNFNode> FromString(string s) {

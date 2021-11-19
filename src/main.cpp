@@ -37,12 +37,6 @@ void PrintdDNNF(shared_ptr<const dDNNFNode> node, ostream &out) {
     if(it == cur->children.end()) { // we are done with the children and can print
       *cur->idx = idx++;
       switch(cur->type) {
-        case dDNNFNode::TRUE:
-          out << "A 0" << endl;
-          break;
-        case dDNNFNode::FALSE:
-          out << "O 0 0" << endl;
-          break;
         case dDNNFNode::LIT:
           out << "L " << cur->literal << endl;
           break;
