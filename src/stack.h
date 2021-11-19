@@ -127,7 +127,7 @@ inline void StackLevel<T_num>::includeSolution(shared_ptr<const T_num> solutions
     branch_found_unsat_[active_branch_] = true;
   }
   if (branch_model_count_[active_branch_]->IsAlgZero()) {
-    branch_model_count_[active_branch_] = *solutions * dec_weight;
+    branch_model_count_[active_branch_] = *solutions * shared_ptr<T_num>(new T_num(dec_weight));
   }
   else {
     *branch_model_count_[active_branch_] *= solutions;

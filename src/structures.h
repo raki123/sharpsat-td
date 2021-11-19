@@ -95,7 +95,6 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
     idx = new unsigned long long();
     type = FALSE;
     literal = 0;
-    has = false;
     children = set<shared_ptr<const dDNNFNode>>();
   }
   dDNNFNode(shared_ptr<const dDNNFNode> other) {
@@ -103,7 +102,6 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
     type = other->type;
     literal = other->literal;
     children = other->children;
-    has = other->has;
   }
 
   bool IsAlgZero() const {
@@ -115,7 +113,6 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
       ret->type = FALSE;
       ret->literal = 0;
       ret->children.clear();
-      ret->has = false;
     } else if(type != FALSE) {
       if(type == AND) {
         if(other->type != TRUE) {
@@ -127,40 +124,29 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
         ret->literal = 0;
         ret->children.clear();
         ret->children.insert({ child, other });
-        ret->has = true;
       }
     }
     return ret;
   }
   shared_ptr<dDNNFNode> operator+(shared_ptr<const dDNNFNode> other) const {
+    shared_ptr<dDNNFNode> ret(new dDNNFNode(shared_from_this()));
     if(other->type == TRUE) {
-      shared_ptr<dDNNFNode> ret(new dDNNFNode());
       ret->type = TRUE;
-      ret->has = true;
-      return ret;
-    } 
-    if(type != TRUE) {    
+      ret->literal = 0;
+      ret->children.clear();
+    } else if(type != TRUE) {    
       if(type == OR) {
-        shared_ptr<dDNNFNode> ret(new dDNNFNode(shared_from_this()));
         if(other->type != FALSE) {
           ret->children.insert(other);
         }
-        return ret;
-      } 
-      if(type == FALSE) {
-        shared_ptr<dDNNFNode> ret(new dDNNFNode(other));
-        return ret;
       } else {
         shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
-        shared_ptr<dDNNFNode> ret(new dDNNFNode());
         ret->type = OR;
         ret->literal = 0;
+        ret->children.clear();
         ret->children.insert({ child, other });
-        ret->has = true;
-        return ret;
       }
     }
-    shared_ptr<dDNNFNode> ret(new dDNNFNode(shared_from_this()));
     return ret;
   }
   shared_ptr<dDNNFNode> operator*=(shared_ptr<const dDNNFNode> other) {
@@ -168,7 +154,6 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
       type = FALSE;
       literal = 0;
       children.clear();
-      has = false;
     } else if(type != FALSE) {
       if(type == AND) {
         if(other->type != TRUE) {
@@ -180,19 +165,16 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
         literal = 0;
         children.clear();
         children.insert({ child, other });
-        has = true;
       }
     }
     return shared_from_this();
   }
   shared_ptr<dDNNFNode> operator/=(shared_ptr<const dDNNFNode> other) {
     assert(other->type >= 2);
-    assert(other->has);
     assert(type == AND);
     auto it = children.find(other);
     assert(it != children.end());
     children.erase(it);
-    assert(idx != nullptr);
     return shared_from_this();
   }
   size_t InternalSize() const {
@@ -200,29 +182,23 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
   }
   static shared_ptr<dDNNFNode> Zero() {
     shared_ptr<dDNNFNode> ret(new dDNNFNode());
-    ret->idx = new unsigned long long();
     return ret;
   }
   static shared_ptr<dDNNFNode> One() {
     shared_ptr<dDNNFNode> ret(new dDNNFNode());
-    ret->idx = new unsigned long long();
     ret->type = TRUE;
-    ret->has = true;
     return ret;
   }
   static shared_ptr<dDNNFNode> FromString(string s) {
     shared_ptr<dDNNFNode> ret(new dDNNFNode());
-    ret->idx = new unsigned long long();
     ret->type = LIT;
-    ret->has = true;
     ret->literal = stol(s);
     return ret;
   }
-  unsigned long long *idx = new unsigned long long();
-  int type = 0;
-  long literal = 0;
-  set<shared_ptr<const dDNNFNode>> children = set<shared_ptr<const dDNNFNode>>();
-  bool has = false;
+  unsigned long long *idx;
+  int type;
+  long literal;
+  set<shared_ptr<const dDNNFNode>> children;
 };
 
 struct Smpr : enable_shared_from_this<Smpr> {

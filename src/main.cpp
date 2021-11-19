@@ -35,7 +35,6 @@ void PrintdDNNF(shared_ptr<const dDNNFNode> node, ostream &out) {
       ++it;
     }
     if(it == cur->children.end()) { // we are done with the children and can print
-      s.pop();
       *cur->idx = idx++;
       switch(cur->type) {
         case dDNNFNode::TRUE:
@@ -43,7 +42,7 @@ void PrintdDNNF(shared_ptr<const dDNNFNode> node, ostream &out) {
           break;
         case dDNNFNode::FALSE:
           out << "O 0 0" << endl;
-          break;        
+          break;
         case dDNNFNode::LIT:
           out << "L " << cur->literal << endl;
           break;
@@ -53,7 +52,7 @@ void PrintdDNNF(shared_ptr<const dDNNFNode> node, ostream &out) {
             out << *it2->idx - 1 << " ";
           }
           out << endl;
-          break;        
+          break;
         case dDNNFNode::AND:
           out << "A " << cur->children.size() << " ";
           for(auto it2 : cur->children) {
@@ -64,6 +63,7 @@ void PrintdDNNF(shared_ptr<const dDNNFNode> node, ostream &out) {
         default:
           assert(0);
       }        
+      s.pop();
     } else { // we need to handle the current child
       s.push(make_pair(*it, (*it)->children.begin()));
     }
