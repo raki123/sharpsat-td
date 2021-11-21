@@ -26,16 +26,21 @@ using namespace std;
 
 
 void PrintdDNNF(shared_ptr<const dDNNFNode> node, ostream &out) {
-  unsigned long long idx = 1;
+  unsigned long long idx = 0;
+  unsigned long long *idxs = (unsigned long long *)calloc(dDNNFNode::cur_id, sizeof(unsigned long long));
+  if(!idxs) {
+    cerr << "Failed to allocate enough space for dDNNF writing." << endl;
+    exit(-1);
+  }
   stack<pair<shared_ptr<const dDNNFNode>, set<shared_ptr<const dDNNFNode>>::iterator>> s;
   s.push(make_pair(node, node->children.begin()));
   while(!s.empty()) {
     auto [cur, it] = s.top();
-    while(it != cur->children.end() && *(*it)->idx != 0) {
+    while(it != cur->children.end() && idxs[(*it)->id] != 0) {
       ++it;
     }
     if(it == cur->children.end()) { // we are done with the children and can print
-      *cur->idx = idx++;
+      idxs[cur->id] = idx++;
       switch(cur->type) {
         case dDNNFNode::LIT:
           out << "L " << cur->literal << endl;
@@ -43,14 +48,14 @@ void PrintdDNNF(shared_ptr<const dDNNFNode> node, ostream &out) {
         case dDNNFNode::OR:
           out << "O 0 " << cur->children.size() << " ";
           for(auto it2 : cur->children) {
-            out << *it2->idx - 1 << " ";
+            out << idxs[it2->id] << " ";
           }
           out << endl;
           break;
         case dDNNFNode::AND:
           out << "A " << cur->children.size() << " ";
           for(auto it2 : cur->children) {
-            out << *it2->idx - 1 << " ";
+            out << idxs[it2->id] << " ";
           }
           out << endl;
           break;
@@ -329,6 +334,7 @@ int main(int argc, char *argv[]) {
     }
     return 0;
   } else if (weighted == 3) {
+    dDNNFNode::cur_id = 0;
     sspp::Instance<dDNNFNode> ins(input_file, true);
     sspp::Preprocessor<dDNNFNode> ppp;
     ins = ppp.Preprocess(ins, "FPVE");

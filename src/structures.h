@@ -85,18 +85,19 @@ struct SDouble : enable_shared_from_this<SDouble> {
 
 
 struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
+ public:
  static const int LIT = 0;
  static const int AND = 1;
  static const int OR = 2;
- public:
+ static unsigned long long cur_id;
   dDNNFNode() {
-    idx = new unsigned long long();
+    id = cur_id++;
     type = OR;
     literal = 0;
     children = set<shared_ptr<const dDNNFNode>>();
   }
   dDNNFNode(shared_ptr<const dDNNFNode> other) {
-    idx = new unsigned long long();
+    id = cur_id++;
     type = other->type;
     literal = other->literal;
     children = other->children;
@@ -192,11 +193,13 @@ struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
     ret->literal = stol(s);
     return ret;
   }
-  unsigned long long *idx;
+  unsigned long long id;
   int type;
   long literal;
   set<shared_ptr<const dDNNFNode>> children;
 };
+
+unsigned long long dDNNFNode::cur_id = 0;
 
 struct Smpr : enable_shared_from_this<Smpr> {
  public:
