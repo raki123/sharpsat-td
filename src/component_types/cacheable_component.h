@@ -121,7 +121,7 @@ private:
   HashType clhashkey_;
   unsigned num_variables_ = 0;
 
-  shared_ptr<const T_num>  model_count_;
+  shared_ptr<const T_num>  model_count_ = T_num::Zero();
 
   unsigned creation_time_ = 1;
   // this is:  length_solution_period = length_solution_period_and_flags_ >> 1
