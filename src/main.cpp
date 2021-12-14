@@ -364,6 +364,9 @@ int main(int argc, char *argv[]) {
     }
     shared_ptr<const dDNNFNode> root = theSolver.solve(ins, tdecomp);
     PrintdDNNF(*root*ans0, ddnnf_out);
+    if(ddnnf_fs.is_open()) {
+      ddnnf_fs.close();
+    }
     cout<<"c o Solved. "<<glob_timer.get()<<endl;
     return 0;
   } else {
