@@ -1,3 +1,13 @@
+# Edit by Rafael Kiesel
+
+This is a modified version of SharpSAT-TD that can compile CNFs into sd-DNNFs. Use with
+`./sharpSAT -dDNNF -decot 1 -decow 100 -tmpdir . -cs 3500 in.cnf -dDNNF_out out.nnf`
+to compile the cnf `in.cnf`into an sd-DNNF saved in the file `out.cnf`. Without `-dDNNF_out` the sd-DNNF is printed to stdout.
+
+For this to work, the input CNF must have weight annotations of the form 
+`c p weight <lit> <lit> 0`
+for each literal `0 < abs(lit) <= #vars`.
+
 # SharpSAT-TD
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4880703.svg)](https://doi.org/10.5281/zenodo.4880703)
