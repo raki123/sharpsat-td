@@ -39,7 +39,7 @@ class Preprocessor {
  	bool unsat = false;
 
  	bool weighted = false;
- 	vector<shared_ptr<T_num>> weights;
+ 	vector<T_num> weights;
  	int free_vars = 0;
 
  	double max_g_time = 1e9;

@@ -117,7 +117,7 @@ Instance<T_num>::Instance(string input_file, bool weighted_) {
 		} else if (weighted && format == 1 && tokens.size() == 6 && tokens[0] == "c" && tokens[1] == "p" && tokens[2] == "weight") {
 			assert(IsInt(tokens[3], -vars, vars));
 			int dlit = stoi(tokens[3]);
-			shared_ptr<T_num> w = T_num::FromString(tokens[4]);
+			T_num w = T_num::FromString(tokens[4]);
 			assert(dlit != 0);
 			Lit lit = FromDimacs(dlit);
 			weights[lit] = w;
@@ -151,10 +151,10 @@ Instance<T_num>::Instance(string input_file, bool weighted_) {
 	}
 	if (weighted) {
 		for (int v = 1; v <= vars; v++) {
-			if (weights[PosLit(v)]->IsAlgZero()) {
+			if (weights[PosLit(v)].IsAlgZero()) {
 				AddClause({NegLit(v)});
 			}
-			if (weights[NegLit(v)]->IsAlgZero()) {
+			if (weights[NegLit(v)].IsAlgZero()) {
 				AddClause({PosLit(v)});
 			}
 		}

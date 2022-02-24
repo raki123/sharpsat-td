@@ -103,7 +103,7 @@ protected:
 
   LiteralIndexedVector<vector<ClauseOfs> > occurrence_lists_;
 
-  LiteralIndexedVector<shared_ptr<T_num>> lit_weights_;
+  LiteralIndexedVector<T_num> lit_weights_;
   vector<char> lit_mul_;
   vector<vector<unsigned long>> dec_cands_;
 

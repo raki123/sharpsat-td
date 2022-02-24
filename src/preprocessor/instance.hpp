@@ -31,9 +31,9 @@ struct Instance {
 	vector<vector<Lit>> learned_clauses;
 
 	bool weighted = false;
-	shared_ptr<T_num> weight_factor = T_num::One();
+	T_num weight_factor = T_num::One();
 
-  vector<shared_ptr<T_num>> weights;
+  vector<T_num> weights;
   int total_lits = 0;
  private:
  	Lit RecConstruct(vector<Lit> clause);

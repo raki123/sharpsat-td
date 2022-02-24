@@ -20,41 +20,45 @@
 #include "mpfr/mpreal.h"
 using namespace std;
 
-struct SDouble : enable_shared_from_this<SDouble> {
+struct SDouble {
  public:
   SDouble() {
     n = 0;
     has = false;
   }
-  SDouble(shared_ptr<const SDouble> other) {
-    n = other->n;
-    has = other->has;
+  void Init(double d) {
+    assert(d != 0);
+    n = d;
+    has = true;
+  }
+  SDouble(const SDouble& other) {
+    n = other.n;
+    has = other.has;
+  }
+  SDouble& operator=(const SDouble& other) {
+    n = other.n;
+    has = other.has;
+    return *this;
   }
   bool IsAlgZero() const {
     return !has;
   }
-  shared_ptr<SDouble> operator*(shared_ptr<SDouble> other) const {
-    shared_ptr<SDouble> ret(new SDouble(other));
-    ret->n *= n;
-    ret->has &= has;
+  SDouble operator*(SDouble other) const {
+    SDouble ret = other;
+    ret.n *= n;
+    ret.has &= has;
     return ret;
   }
-  shared_ptr<SDouble> operator+(shared_ptr<SDouble> other) const {
-    shared_ptr<SDouble> ret(new SDouble(other));
-    ret->n += n;
-    ret->has |= has;
+  SDouble operator+(SDouble other) const {
+    SDouble ret = other;
+    ret.n += n;
+    ret.has |= has;
     return ret;
   }
-  shared_ptr<SDouble> operator*=(shared_ptr<const SDouble> other) {
-    n *= other->n;
-    has &= other->has;
-    return shared_from_this();
-  }
-  shared_ptr<SDouble> operator/=(shared_ptr<const SDouble> other) {
-    assert(other->n != 0);
-    assert(other->has);
-    n /= other->n;
-    return shared_from_this();
+  SDouble& operator*=(const SDouble& other) {
+    n *= other.n;
+    has &= other.has;
+    return *this;
   }
   size_t InternalSize() const {
     return 0;
@@ -62,20 +66,20 @@ struct SDouble : enable_shared_from_this<SDouble> {
   double Get() const {
     return n;
   }
-  static shared_ptr<SDouble> Zero() {
-    shared_ptr<SDouble> ret(new SDouble());
+  static SDouble Zero() {
+    SDouble ret;
     return ret;
   }
-  static shared_ptr<SDouble> One() {
-    shared_ptr<SDouble> ret(new SDouble());
-    ret->n = 1;
-    ret->has = true;
+  static SDouble One() {
+    SDouble ret;
+    ret.n = 1;
+    ret.has = true;
     return ret;
-  }  
-  static shared_ptr<SDouble> FromString(string s){
-    shared_ptr<SDouble> ret(new SDouble());
-    ret->n = stod(s);
-    ret->has = ret->n != 0;
+  }
+  static SDouble FromString(string s){
+    SDouble ret;
+    ret.n = stod(s);
+    ret.has = ret.n != 0;
     return ret;
   }
  private:
@@ -84,158 +88,102 @@ struct SDouble : enable_shared_from_this<SDouble> {
 };
 
 
-struct dDNNFNode : enable_shared_from_this<dDNNFNode>{
+struct dDNNFNode {
  public:
- static const int LIT = 0;
- static const int AND = 1;
- static const int OR = 2;
  static unsigned long long cur_id;
+ static ostream* out;
   dDNNFNode() {
-    id = cur_id++;
-    type = OR;
-    literal = 0;
-    children = set<shared_ptr<const dDNNFNode>>();
+    id = 0;
   }
-  dDNNFNode(shared_ptr<const dDNNFNode> other) {
-    id = cur_id++;
-    type = other->type;
-    literal = other->literal;
-    children = other->children;
+  dDNNFNode(const dDNNFNode& other) {
+    id = other.id;
   }
 
   bool IsAlgZero() const {
-    return type == OR && children.empty();
+    return id == 0;
   }
-  shared_ptr<dDNNFNode> operator*(shared_ptr<dDNNFNode> other) const {
-    shared_ptr<dDNNFNode> ret(new dDNNFNode(shared_from_this()));
-    if(other->IsAlgZero()) {
-      ret->type = OR;
-      ret->literal = 0;
-      ret->children.clear();
-    } else if(!IsAlgZero()) {
-      if(other->type != AND || !other->children.empty()) {
-        if(type == AND) {
-            ret->children.insert(other);
-        } else {
-          shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
-          ret->type = AND;
-          ret->literal = 0;
-          ret->children.clear();
-          ret->children.insert({ child, other });
-      }
-      }
-    }
+  dDNNFNode operator*(dDNNFNode other) const {
+    *out << "A 2 " << other.id << " " << id << endl;
+    dDNNFNode ret;
+    ret.id = cur_id++;
     return ret;
   }
-  shared_ptr<dDNNFNode> operator+(shared_ptr<const dDNNFNode> other) const {
-    shared_ptr<dDNNFNode> ret(new dDNNFNode(shared_from_this()));
-    if(other->type == AND && other->children.empty()) {
-      ret->type = AND;
-      ret->literal = 0;
-      ret->children.clear();
-    } else if(type != AND || !children.empty()) {   
-      if(!other->IsAlgZero()) { 
-        if(type == OR) {
-            ret->children.insert(other);
-        } else {
-          shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
-          ret->type = OR;
-          ret->literal = 0;
-          ret->children.clear();
-          ret->children.insert({ child, other });
-        }        
-      }
-    }
+  dDNNFNode operator+(dDNNFNode other) const {
+    *out << "O 0 2 " << other.id << " " << id << endl;
+    dDNNFNode ret;
+    ret.id = cur_id++;
     return ret;
   }
-  shared_ptr<dDNNFNode> operator*=(shared_ptr<const dDNNFNode> other) {
-    if(other->IsAlgZero()) {
-      type = OR;
-      literal = 0;
-      children.clear();
-    } else if(!IsAlgZero()) {
-      if(other->type != AND || !other->children.empty()) {
-        if(type == AND) {
-            children.insert(other);
-        } else {
-          shared_ptr<dDNNFNode> child(new dDNNFNode(shared_from_this()));
-          type = AND;
-          literal = 0;
-          children.clear();
-          children.insert({ child, other });
-        }
-      }
-    }
-    return shared_from_this();
+  dDNNFNode operator*=(const dDNNFNode& other) {
+    *out << "A 2 " << other.id << " " << id << endl;
+    id = cur_id++;
+    return *this;
   }
-  shared_ptr<dDNNFNode> operator/=(shared_ptr<const dDNNFNode> other) {
-    assert(type == AND);
-    auto it = children.find(other);
-    assert(it != children.end());
-    children.erase(it);
-    return shared_from_this();
-  }
+
   size_t InternalSize() const {
     return 0;
   }
-  static shared_ptr<dDNNFNode> Zero() {
-    shared_ptr<dDNNFNode> ret(new dDNNFNode());
+  static dDNNFNode Zero() {
+    dDNNFNode ret;
     return ret;
   }
-  static shared_ptr<dDNNFNode> One() {
-    shared_ptr<dDNNFNode> ret(new dDNNFNode());
-    ret->type = AND;
+  static dDNNFNode One() {
+    dDNNFNode ret;
+    ret.id = 1;
     return ret;
   }
-  static shared_ptr<dDNNFNode> FromString(string s) {
-    shared_ptr<dDNNFNode> ret(new dDNNFNode());
-    ret->type = LIT;
-    ret->literal = stol(s);
+  static dDNNFNode FromString(string s) {
+    *out << "L " << s << endl;
+    dDNNFNode ret;
+    ret.id = cur_id++;
     return ret;
   }
+  private:
   unsigned long long id;
-  int type;
-  long literal;
-  set<shared_ptr<const dDNNFNode>> children;
 };
 
-unsigned long long dDNNFNode::cur_id = 0;
+unsigned long long dDNNFNode::cur_id = 2;
+ostream* dDNNFNode::out;
 
-struct Smpr : enable_shared_from_this<Smpr> {
+struct Smpr {
  public:
   Smpr() {
     n = 0;
     has = false;
   }
-  Smpr(shared_ptr<const Smpr> other) {
-    n = other->n;
-    has = other->has;
+  void Init(double d) {
+    assert(d != 0);
+    n = d;
+    has = true;
+  }
+  Smpr(const Smpr& other) {
+    n = other.n;
+    has = other.has;
+  }
+  Smpr& operator=(const Smpr& other) {
+    n = other.n;
+    has = other.has;
+    return *this;
   }
   bool IsAlgZero() const {
     return !has;
   }
-  shared_ptr<Smpr> operator*(shared_ptr<Smpr> other) const {
-    shared_ptr<Smpr> ret(new Smpr(other));
-    ret->n *= n;
-    ret->has &= has;
+  Smpr operator*(Smpr other) const {
+    Smpr ret = other;
+    ret.n *= n;
+    ret.has &= has;
     return ret;
   }
-  shared_ptr<Smpr> operator+(shared_ptr<Smpr> other) const {
-    shared_ptr<Smpr> ret(new Smpr(other));
-    ret->n += n;
-    ret->has |= has;
+  Smpr operator+(Smpr other) const {
+    Smpr ret = other;
+    ret.n += n;
+    ret.has |= has;
     return ret;
   }
-  shared_ptr<Smpr> operator*=(shared_ptr<const Smpr> other) {
-    n *= other->n;
-    has &= other->has;
-    return shared_from_this();
-  }
-  shared_ptr<Smpr> operator/=(shared_ptr<const Smpr> other) {
-    assert(other->n != 0);
-    assert(other->has);
-    n /= other->n;
-    return shared_from_this();
+  Smpr& operator*=(const Smpr& other) {
+    n *= other.n;
+    has &= other.has;
+    return *this;
   }
   size_t InternalSize() const {
     return 0;
@@ -243,20 +191,20 @@ struct Smpr : enable_shared_from_this<Smpr> {
   mpfr::mpreal Get() const {
     return n;
   }
-  static shared_ptr<Smpr> Zero() {
-    shared_ptr<Smpr> ret(new Smpr());
+  static Smpr Zero() {
+    Smpr ret;
     return ret;
   }
-  static shared_ptr<Smpr> One() {
-    shared_ptr<Smpr> ret(new Smpr());
-    ret->n = 1;
-    ret->has = true;
+  static Smpr One() {
+    Smpr ret;
+    ret.n = 1;
+    ret.has = true;
     return ret;
   }
-  static shared_ptr<Smpr> FromString(string s){
-    shared_ptr<Smpr> ret(new Smpr());
-    ret->n = stod(s);
-    ret->has = ret->n != 0;
+  static Smpr FromString(string s){
+    Smpr ret;
+    ret.n = stod(s);
+    ret.has = ret.n != 0;
     return ret;
   }
  private:
@@ -264,44 +212,45 @@ struct Smpr : enable_shared_from_this<Smpr> {
   bool has = false;
 };
 
-struct Smpz : enable_shared_from_this<Smpz> {
+struct Smpz {
  public:
   Smpz() {
     n = 0;
     has = false;
   }
-  Smpz(shared_ptr<const Smpz> other) {
-    n = other->n;
-    has = other->has;
+  void Init(double d) {
+    assert(d == 1 || d == -1);
+    n = (int)d;
+    has = true;
+  }
+  Smpz(const Smpz& other) {
+    n = other.n;
+    has = other.has;
+  }
+  Smpz& operator=(const Smpz& other) {
+    n = other.n;
+    has = other.has;
+    return *this;
   }
   bool IsAlgZero() const {
     return !has;
   }
-  shared_ptr<Smpz> operator*(shared_ptr<Smpz> other) const {
-    shared_ptr<Smpz> ret(new Smpz(other));
-    ret->n *= n;
-    ret->has &= has;
+  Smpz operator*(Smpz other) const {
+    Smpz ret = other;
+    ret.n *= n;
+    ret.has &= has;
     return ret;
   }
-  shared_ptr<Smpz> operator+(shared_ptr<Smpz> other) const {
-    shared_ptr<Smpz> ret(new Smpz(other));
-    ret->n += n;
-    ret->has |= has;
+  Smpz operator+(Smpz other) const {
+    Smpz ret = other;
+    ret.n += n;
+    ret.has |= has;
     return ret;
   }
-  shared_ptr<Smpz> operator*=(shared_ptr<const Smpz> other) {
-    n *= other->n;
-    has &= other->has;
-    return shared_from_this();
-  }
-  shared_ptr<Smpz> operator/=(shared_ptr<const Smpz> other) {
-    assert(other->has);
-    if (other->n == -1) {
-      n = -n;
-    } else {
-      assert(other->n == 1);
-    }
-    return shared_from_this();
+  Smpz& operator*=(const Smpz& other) {
+    n *= other.n;
+    has &= other.has;
+    return *this;
   }
   size_t InternalSize() const {
     return n.get_mpz_t()->_mp_alloc * sizeof(mp_limb_t);
@@ -309,20 +258,20 @@ struct Smpz : enable_shared_from_this<Smpz> {
   mpz_class Get() const {
     return n;
   }
-  static shared_ptr<Smpz> Zero() {
-    shared_ptr<Smpz> ret(new Smpz());
+  static Smpz Zero() {
+    Smpz ret;
     return ret;
   }
-  static shared_ptr<Smpz> One() {
-    shared_ptr<Smpz> ret(new Smpz());
-    ret->n = 1;
-    ret->has = true;
+  static Smpz One() {
+    Smpz ret;
+    ret.n = 1;
+    ret.has = true;
     return ret;
   }
-  static shared_ptr<Smpz> FromString(string s){
-    shared_ptr<Smpz> ret(new Smpz());
-    ret->n = stoi(s);
-    ret->has = ret->n != 0;
+  static Smpz FromString(string s){
+    Smpz ret;
+    ret.n = stoi(s);
+    ret.has = ret.n != 0;
     return ret;
   }
  private:
@@ -391,7 +340,17 @@ private:
   unsigned value_;
 
   template <class _T> friend class LiteralIndexedVector;
+  friend struct std::hash<LiteralID>;
 };
+
+ namespace std {
+    template<>
+    struct hash< LiteralID > {
+       size_t operator()(const LiteralID &p) const {
+          return p.value_;
+       }
+    };
+ }
 
 static const LiteralID NOT_A_LIT(0, false);
 #define SENTINEL_LIT NOT_A_LIT

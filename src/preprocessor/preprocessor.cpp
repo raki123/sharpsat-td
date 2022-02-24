@@ -314,14 +314,14 @@ Instance<T_num> Preprocessor<T_num>::MapBack() {
 			if (assign[v]) {
 				assert(!used[v]);
 				if (assign[v] == 1) {
-					*ret.weight_factor *= weights[PosLit(v)];
+					ret.weight_factor *= weights[PosLit(v)];
 				} else if (assign[v] == 2) {
-					*ret.weight_factor *= weights[NegLit(v)];
+					ret.weight_factor *= weights[NegLit(v)];
 				} else {
 					assert(0);
 				}
 			} else if (!used[v]) {
-				*ret.weight_factor *= (*weights[PosLit(v)] + weights[NegLit(v)]);
+				ret.weight_factor *= (weights[PosLit(v)] + weights[NegLit(v)]);
 			}
 		}
 	}

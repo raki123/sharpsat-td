@@ -24,51 +24,6 @@
 
 using namespace std;
 
-
-void PrintdDNNF(shared_ptr<const dDNNFNode> node, ostream &out) {
-  unsigned long long idx = 0;
-  unsigned long long *idxs = (unsigned long long *)calloc(dDNNFNode::cur_id, sizeof(unsigned long long));
-  if(!idxs) {
-    cerr << "Failed to allocate enough space for dDNNF writing." << endl;
-    exit(-1);
-  }
-  stack<pair<shared_ptr<const dDNNFNode>, set<shared_ptr<const dDNNFNode>>::iterator>> s;
-  s.push(make_pair(node, node->children.begin()));
-  while(!s.empty()) {
-    auto [cur, it] = s.top();
-    while(it != cur->children.end() && idxs[(*it)->id] != 0) {
-      ++it;
-    }
-    if(it == cur->children.end()) { // we are done with the children and can print
-      idxs[cur->id] = idx++;
-      switch(cur->type) {
-        case dDNNFNode::LIT:
-          out << "L " << cur->literal << endl;
-          break;
-        case dDNNFNode::OR:
-          out << "O 0 " << cur->children.size() << " ";
-          for(auto it2 : cur->children) {
-            out << idxs[it2->id] << " ";
-          }
-          out << endl;
-          break;
-        case dDNNFNode::AND:
-          out << "A " << cur->children.size() << " ";
-          for(auto it2 : cur->children) {
-            out << idxs[it2->id] << " ";
-          }
-          out << endl;
-          break;
-        default:
-          assert(0);
-      }        
-      s.pop();
-    } else { // we need to handle the current child
-      s.push(make_pair(*it, (*it)->children.begin()));
-    }
-  }
-}
-
 void PrintSat(bool sat) {
   if (sat) {
     cout<<"s SATISFIABLE"<<endl;
@@ -213,7 +168,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  ostream &ddnnf_out = ddnnf_fs.is_open()?ddnnf_fs:cout;
+  dDNNFNode::out = ddnnf_fs.is_open()?&ddnnf_fs:&cout;
 
   assert(!tmp_dir.empty());
   assert(decot > 0.0001 && decot < 10000);
@@ -250,7 +205,7 @@ int main(int argc, char *argv[]) {
     if (max_cache > 0) {
       theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
     }
-    mpz_class ans = theSolver.solve(ins, tdecomp)->Get();
+    mpz_class ans = theSolver.solve(ins, tdecomp).Get();
     cout<<"c o Solved. "<<glob_timer.get()<<endl;
     ans *= ans0;
     PrintSat(true);
@@ -272,7 +227,7 @@ int main(int argc, char *argv[]) {
         PrintExact((mpfr::mpreal)0);
         return 0;
       }
-      double ans0 = ins.weight_factor->Get();
+      double ans0 = ins.weight_factor.Get();
       cout<<"c o wf "<<ans0<<endl;
       if (ins.vars == 0) {
         PrintSat(true);
@@ -289,7 +244,7 @@ int main(int argc, char *argv[]) {
       if (max_cache > 0) {
         theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
       }
-      double ans1 = theSolver.solve(ins, tdecomp)->Get();
+      double ans1 = theSolver.solve(ins, tdecomp).Get();
       cout<<"c o Solved. "<<glob_timer.get()<<endl;
       PrintSat(true);
       PrintType(ins);
@@ -308,7 +263,7 @@ int main(int argc, char *argv[]) {
         PrintExact((mpfr::mpreal)0);
         return 0;
       }
-      mpfr::mpreal ans0 = ins.weight_factor->Get();
+      mpfr::mpreal ans0 = ins.weight_factor.Get();
       cout<<"c o wf "<<ans0<<endl;
       if (ins.vars == 0) {
         PrintSat(true);
@@ -325,7 +280,7 @@ int main(int argc, char *argv[]) {
       if (max_cache > 0) {
         theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
       }
-      mpfr::mpreal ans1 = theSolver.solve(ins, tdecomp)->Get();
+      mpfr::mpreal ans1 = theSolver.solve(ins, tdecomp).Get();
       cout<<"c o Solved. "<<glob_timer.get()<<endl;
       PrintSat(true);
       PrintType(ins);
@@ -334,7 +289,8 @@ int main(int argc, char *argv[]) {
     }
     return 0;
   } else if (weighted == 3) {
-    dDNNFNode::cur_id = 0;
+    *dDNNFNode::out << "O 0 0" << endl;
+    *dDNNFNode::out << "A 0" << endl;
     sspp::Instance<dDNNFNode> ins(input_file, true);
     sspp::Preprocessor<dDNNFNode> ppp;
     ins = ppp.Preprocess(ins, "FPVE");
@@ -343,15 +299,12 @@ int main(int argc, char *argv[]) {
     if (ins.vars == 1 && ins.clauses.size() == 2) {
       PrintSat(false);
       PrintType(ins);
-      PrintdDNNF(shared_ptr<const dDNNFNode>(new dDNNFNode()), ddnnf_out);
+      cout << "A 0" << endl;
       return 0;
     }
-    shared_ptr<dDNNFNode> ans0 = ins.weight_factor;
-    cout<<"c o wf "<<ans0<<endl;
     if (ins.vars == 0) {
       PrintSat(true);
       PrintType(ins);
-      PrintdDNNF(ans0, ddnnf_out);
       return 0;
     }
     sspp::Graph primal(ins.vars, ins.clauses);
@@ -362,8 +315,7 @@ int main(int argc, char *argv[]) {
     if (max_cache > 0) {
       theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
     }
-    shared_ptr<const dDNNFNode> root = theSolver.solve(ins, tdecomp);
-    PrintdDNNF(*root*ans0, ddnnf_out);
+    theSolver.solve(ins, tdecomp);
     if(ddnnf_fs.is_open()) {
       ddnnf_fs.close();
     }

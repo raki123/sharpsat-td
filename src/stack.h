@@ -10,6 +10,7 @@
 
 #include <gmpxx.h>
 #include <vector>
+#include <unordered_map>
 
 template<class T_num>
 class StackLevel {
@@ -23,7 +24,7 @@ public:
   const unsigned literal_stack_ofs_ = 0;
 
   //  Solutioncount
-  shared_ptr<T_num> branch_model_count_[2] = {T_num::Zero(), T_num::Zero()};
+  T_num branch_model_count_[2] = {T_num::Zero(), T_num::Zero()};
   bool branch_found_unsat_[2] = {false,false};
 
   /// remaining Components
@@ -41,7 +42,7 @@ public:
   // in [unprocessed_components_end_, component_stack.size())
   unsigned unprocessed_components_end_ = 0;
 
-  shared_ptr<T_num> dec_weight = T_num::One();
+  unordered_map<LiteralID, T_num> dec_weights;
 
   bool hasUnprocessedComponents() {
     assert(unprocessed_components_end_ >= remaining_components_ofs_);
@@ -95,7 +96,7 @@ public:
     return literal_stack_ofs_;
   }
 
-  void includeSolution(shared_ptr<const T_num> solutions);
+  void includeSolution(const T_num& solutions);
 
   bool branch_found_unsat() const;
   void mark_branch_unsat() {
@@ -108,7 +109,7 @@ public:
 //	  branch_model_count_[0] = branch_model_count_[1] = 0;
 //	  active_branch_ = 1;
 //  }
-  shared_ptr<const T_num> getTotalModelCount() const;
+  const T_num getTotalModelCount() const;
 };
 
 template<typename T_num>
@@ -118,25 +119,29 @@ inline bool StackLevel<T_num>::branch_found_unsat() const {
 
 
 template <typename T_num>
-inline void StackLevel<T_num>::includeSolution(shared_ptr<const T_num> solutions) {
+inline void StackLevel<T_num>::includeSolution(const T_num& solutions) {
   if (branch_found_unsat_[active_branch_]) {
-    assert(branch_model_count_[active_branch_]->IsAlgZero());
+    assert(branch_model_count_[active_branch_].IsAlgZero());
     return;
   }
-  if (solutions->IsAlgZero()) {
+  if (solutions.IsAlgZero()) {
     branch_found_unsat_[active_branch_] = true;
   }
-  if (branch_model_count_[active_branch_]->IsAlgZero()) {
-    branch_model_count_[active_branch_] = *solutions * shared_ptr<T_num>(new T_num(dec_weight));
+  if (branch_model_count_[active_branch_].IsAlgZero()) {
+    T_num factor = T_num::One();
+    for(auto it : dec_weights) {
+      factor *= it.second;
+    }
+    branch_model_count_[active_branch_] = solutions * factor;
   }
   else {
-    *branch_model_count_[active_branch_] *= solutions;
+    branch_model_count_[active_branch_] *= solutions;
   }
 }
 
 template <typename T_num>
-inline shared_ptr<const T_num> StackLevel<T_num>::getTotalModelCount() const {
-  return *branch_model_count_[0] + branch_model_count_[1];
+inline const T_num StackLevel<T_num>::getTotalModelCount() const {
+  return branch_model_count_[0] + branch_model_count_[1];
 }
 
 template<class T_num>
