@@ -103,12 +103,24 @@ struct dDNNFNode {
     return id == 0;
   }
   dDNNFNode operator*(dDNNFNode other) const {
+    if(other.IsAlgZero() || id == 1) {
+      return other;
+    }
+    if(IsAlgZero() || other.id == 1) {
+      return *this;
+    }
     *out << "A 2 " << other.id << " " << id << endl;
     dDNNFNode ret;
     ret.id = cur_id++;
     return ret;
   }
-  dDNNFNode operator+(dDNNFNode other) const {
+  dDNNFNode operator+(dDNNFNode other) const {    
+    if(IsAlgZero() || other.id == 1) {
+      return other;
+    }
+    if(other.IsAlgZero() || id == 1) {
+      return *this;
+    }
     *out << "O 0 2 " << other.id << " " << id << endl;
     dDNNFNode ret;
     ret.id = cur_id++;
