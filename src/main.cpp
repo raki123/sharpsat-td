@@ -167,8 +167,8 @@ int main(int argc, char *argv[]) {
       input_file = argv[i];
     }
   }
-
-  dDNNFNode::out = ddnnf_fs.is_open()?&ddnnf_fs:&cout;
+  ostringstream output;
+  dDNNFNode::out = &output;//ddnnf_fs.is_open()?&ddnnf_fs:&cout;
 
   assert(!tmp_dir.empty());
   assert(decot > 0.0001 && decot < 10000);
@@ -316,6 +316,7 @@ int main(int argc, char *argv[]) {
       theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
     }
     theSolver.solve(ins, tdecomp);
+    ddnnf_fs << output.str();
     if(ddnnf_fs.is_open()) {
       ddnnf_fs.close();
     }
