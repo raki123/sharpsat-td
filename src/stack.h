@@ -139,6 +139,30 @@ inline void StackLevel<T_num>::includeSolution(const T_num& solutions) {
   }
 }
 
+
+template <>
+inline void StackLevel<dDNNFNode>::includeSolution(const dDNNFNode& solutions) {
+  if (branch_found_unsat_[active_branch_]) {
+    assert(branch_model_count_[active_branch_].IsAlgZero());
+    return;
+  }
+  if (solutions.IsAlgZero()) {
+    branch_found_unsat_[active_branch_] = true;
+  }
+  if (branch_model_count_[active_branch_].IsAlgZero()) {
+    *dDNNFNode::out << "A " << dec_weights.size() + 1 << " " << solutions.id;
+
+    for(auto it : dec_weights) {
+      *dDNNFNode::out << " " << it.second.id;
+    }
+    *dDNNFNode::out << endl;
+    branch_model_count_[active_branch_].id = dDNNFNode::cur_id++;
+  }
+  else {
+    branch_model_count_[active_branch_] *= solutions;
+  }
+}
+
 template <typename T_num>
 inline const T_num StackLevel<T_num>::getTotalModelCount() const {
   return branch_model_count_[0] + branch_model_count_[1];

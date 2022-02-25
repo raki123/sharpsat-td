@@ -150,7 +150,6 @@ struct dDNNFNode {
     ret.id = cur_id++;
     return ret;
   }
-  private:
   unsigned long long id;
 };
 
