@@ -304,22 +304,20 @@ int main(int argc, char *argv[]) {
       PrintSat(false);
       PrintType(ins);
       *dDNNFNode::out << "A 0" << endl;
-      return 0;
-    }
-    if (ins.vars == 0) {
+    } else if (ins.vars == 0) {
       PrintSat(true);
       PrintType(ins);
-      return 0;
+    } else {
+      sspp::Graph primal(ins.vars, ins.clauses);
+      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      cout<<"c o Now solving. "<<glob_timer.get()<<endl;
+      Solver<dDNNFNode> theSolver(gen);
+      theSolver.config() = config_;
+      if (max_cache > 0) {
+        theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
+      }
+      theSolver.solve(ins, tdecomp);
     }
-    sspp::Graph primal(ins.vars, ins.clauses);
-    sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
-    cout<<"c o Now solving. "<<glob_timer.get()<<endl;
-    Solver<dDNNFNode> theSolver(gen);
-    theSolver.config() = config_;
-    if (max_cache > 0) {
-      theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
-    }
-    theSolver.solve(ins, tdecomp);
     if(ddnnf_fs.is_open()) {
       ddnnf_fs << "nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " << ins.vars << endl;
       ddnnf_fs << output.str();
