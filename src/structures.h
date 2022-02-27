@@ -90,7 +90,8 @@ struct SDouble {
 
 struct dDNNFNode {
  public:
- static unsigned long long cur_id;
+ static unsigned long long nodes;
+ static unsigned long long edges;
  static ostream* out;
   dDNNFNode() {
     id = 0;
@@ -111,7 +112,8 @@ struct dDNNFNode {
     }
     *out << "A 2 " << other.id << " " << id << endl;
     dDNNFNode ret;
-    ret.id = cur_id++;
+    edges += 2;
+    ret.id = nodes++;
     return ret;
   }
   dDNNFNode operator+(dDNNFNode other) const {    
@@ -123,12 +125,14 @@ struct dDNNFNode {
     }
     *out << "O 0 2 " << other.id << " " << id << endl;
     dDNNFNode ret;
-    ret.id = cur_id++;
+    edges += 2;
+    ret.id = nodes++;
     return ret;
   }
   dDNNFNode operator*=(const dDNNFNode& other) {
     *out << "A 2 " << other.id << " " << id << endl;
-    id = cur_id++;
+    edges += 2;
+    id = nodes++;
     return *this;
   }
 
@@ -147,13 +151,14 @@ struct dDNNFNode {
   static dDNNFNode FromString(string s) {
     *out << "L " << s << endl;
     dDNNFNode ret;
-    ret.id = cur_id++;
+    ret.id = nodes++;
     return ret;
   }
   unsigned long long id;
 };
 
-unsigned long long dDNNFNode::cur_id = 2;
+unsigned long long dDNNFNode::nodes = 2;
+unsigned long long dDNNFNode::edges = 0;
 ostream* dDNNFNode::out;
 
 struct Smpr {

@@ -168,7 +168,11 @@ int main(int argc, char *argv[]) {
     }
   }
   ostringstream output;
-  dDNNFNode::out = &output;//ddnnf_fs.is_open()?&ddnnf_fs:&cout;
+  if(ddnnf_fs.is_open()) {
+    dDNNFNode::out = &output;
+  } else {
+    dDNNFNode::out = &cout;
+  }
 
   assert(!tmp_dir.empty());
   assert(decot > 0.0001 && decot < 10000);
@@ -299,7 +303,7 @@ int main(int argc, char *argv[]) {
     if (ins.vars == 1 && ins.clauses.size() == 2) {
       PrintSat(false);
       PrintType(ins);
-      cout << "A 0" << endl;
+      *dDNNFNode::out << "A 0" << endl;
       return 0;
     }
     if (ins.vars == 0) {
@@ -316,8 +320,9 @@ int main(int argc, char *argv[]) {
       theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
     }
     theSolver.solve(ins, tdecomp);
-    ddnnf_fs << output.str();
     if(ddnnf_fs.is_open()) {
+      ddnnf_fs << "nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " << ins.vars << endl;
+      ddnnf_fs << output.str();
       ddnnf_fs.close();
     }
     cout<<"c o Solved. "<<glob_timer.get()<<endl;
