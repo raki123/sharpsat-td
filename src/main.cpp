@@ -316,7 +316,8 @@ int main(int argc, char *argv[]) {
       if (max_cache > 0) {
         theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
       }
-      theSolver.solve(ins, tdecomp);
+      dDNNFNode ans1 = theSolver.solve(ins, tdecomp);
+      ans1 * ins.weight_factor;
     }
     if(ddnnf_fs.is_open()) {
       ddnnf_fs << "nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " << ins.vars << endl;
