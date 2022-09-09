@@ -150,13 +150,21 @@ inline void StackLevel<dDNNFNode>::includeSolution(const dDNNFNode& solutions) {
     branch_found_unsat_[active_branch_] = true;
   }
   if (branch_model_count_[active_branch_].IsAlgZero()) {
-    *dDNNFNode::out << "A " << dec_weights.size() + 1 << " " << solutions.id;
+    int nr_relevant = 0;
+    for(auto it : dec_weights) {
+      if(it.second.id != 1) {
+        nr_relevant++;
+      }
+    }
+    *dDNNFNode::out << "A " << nr_relevant + 1 << " " << solutions.id;
 
     for(auto it : dec_weights) {
-      *dDNNFNode::out << " " << it.second.id;
+      if(it.second.id != 1) {
+        *dDNNFNode::out << " " << it.second.id;
+      }
     }
     *dDNNFNode::out << endl;
-    dDNNFNode::edges += 1 + dec_weights.size();
+    dDNNFNode::edges += 1 + nr_relevant;
     branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
   }
   else {
