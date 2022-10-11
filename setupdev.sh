@@ -3,9 +3,9 @@ rm -rf build/
 mkdir build
 cd build
 if [ "$1" = "static" ]; then
-	cmake -DSTATIC=ON ..
+	cmake -DSTATIC=ON -DNDEBUG=ON ..
 else
-	cmake ..
+	cmake -DNDEBUG=ON ..
 fi
 make -j4
 cd ..
