@@ -150,23 +150,26 @@ inline void StackLevel<dDNNFNode>::includeSolution(const dDNNFNode& solutions) {
     branch_found_unsat_[active_branch_] = true;
   }
   if (branch_model_count_[active_branch_].IsAlgZero()) {
+    bool has = solutions.id != 0;
     int nr_relevant = 0;
     for(auto it : dec_weights) {
       if(it.second.id != 1) {
         nr_relevant++;
+        has &= (it.second.id != 0);
       }
     }
-    *dDNNFNode::out << "A " << nr_relevant + 1 << " " << solutions.id;
+    if(has) {
+      *dDNNFNode::out << "A " << nr_relevant + 1 << " " << solutions.id;
 
-    for(auto it : dec_weights) {
-      if(it.second.id != 1) {
-        *dDNNFNode::out << " " << it.second.id;
+      for(auto it : dec_weights) {
+        if(it.second.id != 1) {
+          *dDNNFNode::out << " " << it.second.id;
+        }
       }
+      *dDNNFNode::out << endl;
+      dDNNFNode::edges += 1 + nr_relevant;
+      branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
     }
-    *dDNNFNode::out << endl;
-    dDNNFNode::edges += 1 + nr_relevant;
-    branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
-    branch_model_count_[active_branch_].has = true;
   }
   else {
     branch_model_count_[active_branch_] *= solutions;

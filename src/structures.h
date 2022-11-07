@@ -94,20 +94,17 @@ struct dDNNFNode {
  static ostream* out;
   dDNNFNode() {
     id = 0;
-    has = false;
   }
   dDNNFNode(const dDNNFNode& other) {
     id = other.id;
-    has = other.has;
   }
   dDNNFNode& operator=(const dDNNFNode& other) {
     id = other.id;
-    has = other.has;
     return *this;
   }
 
   bool IsAlgZero() const {
-    return !has;
+    return id == 0;
   }
 
   dDNNFNode operator*(dDNNFNode other) const {
@@ -121,7 +118,6 @@ struct dDNNFNode {
     dDNNFNode ret;
     edges += 2;
     ret.id = nodes++;
-    ret.has = has && other.has;
     return ret;
   }
   dDNNFNode operator+(dDNNFNode other) const {    
@@ -135,12 +131,10 @@ struct dDNNFNode {
     dDNNFNode ret;
     edges += 2;
     ret.id = nodes++;
-    ret.has = has || other.has;
     return ret;
   }
   dDNNFNode& operator*=(const dDNNFNode& other) {
     if(other.IsAlgZero() || id == 1) {
-      has = other.has;
       id = other.id;  
       return *this;
     }
@@ -150,7 +144,6 @@ struct dDNNFNode {
     *out << "A 2 " << other.id << " " << id << endl;
     edges += 2;
     id = nodes++;
-    has &= other.has;
     return *this;
   }
 
@@ -160,24 +153,20 @@ struct dDNNFNode {
   static dDNNFNode Zero() {
     dDNNFNode ret;
     ret.id = 0;
-    ret.has = false;
     return ret;
   }
   static dDNNFNode One() {
     dDNNFNode ret;
     ret.id = 1;
-    ret.has = true;
     return ret;
   }
   static dDNNFNode FromString(string s) {
     *out << "L " << s << endl;
     dDNNFNode ret;
     ret.id = nodes++;
-    ret.has = true;
     return ret;
   }
   unsigned long long id;
-  bool has;
 };
 
 unsigned long long dDNNFNode::nodes = 2;
