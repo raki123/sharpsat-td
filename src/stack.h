@@ -166,6 +166,7 @@ inline void StackLevel<dDNNFNode>::includeSolution(const dDNNFNode& solutions) {
     *dDNNFNode::out << endl;
     dDNNFNode::edges += 1 + nr_relevant;
     branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
+    branch_model_count_[active_branch_].has = true;
   }
   else {
     branch_model_count_[active_branch_] *= solutions;
