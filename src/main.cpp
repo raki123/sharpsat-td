@@ -70,6 +70,22 @@ void PrintExact(const mpfr::mpreal& num) {
   cout<<"c s exact arb float "<<num<<endl;
 }
 
+void PrintExact(const Mmpr& num) {
+  cout<<"c s exact arb float ";
+  for(size_t i = 0; i < Mmpr::N - 1; i++) {
+    cout << num.Get(i) << ";";
+  }
+  cout << num.Get(Mmpr::N - 1) << endl;
+}
+
+void PrintExact(const MDouble& num) {
+  cout<<"c s exact arb float ";
+  for(size_t i = 0; i < MDouble::N - 1; i++) {
+    cout << num.Get(i) << ";";
+  }
+  cout << num.Get(MDouble::N - 1) << endl;
+}
+
 void PrintDouble(double num) {
   cout<<"c s exact double float "<<num<<endl;
 }
@@ -91,7 +107,6 @@ int main(int argc, char *argv[]) {
   uint64_t max_cache = 0;
 
   int weighted = 0;
-
   
   ofstream ddnnf_fs;
 
@@ -105,6 +120,22 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(argv[i], "-dDNNF") == 0) {
       assert(weighted == 0);
       weighted = 3;
+    } else if (strcmp(argv[i], "-MWD") == 0) {
+      assert(weighted == 0);
+      weighted = 4;
+      if (argc <= i + 1) {
+        cout << " wrong parameters" << endl;
+        return -1;
+      }
+      MDouble::N = atoi(argv[i + 1]);
+    } else if (strcmp(argv[i], "-MWE") == 0) {
+      assert(weighted == 0);
+      weighted = 5;
+      if (argc <= i + 1) {
+        cout << " wrong parameters" << endl;
+        return -1;
+      }
+      Mmpr::N = atoi(argv[i + 1]);
     } else if (strcmp(argv[i], "-dDNNF_out") == 0) {
       if (argc <= i + 1) {
         cout << " wrong parameters" << endl;
@@ -292,7 +323,7 @@ int main(int argc, char *argv[]) {
       PrintExact(ans1*ans0);
     }
     return 0;
-  } else if (weighted == 3) {
+  } else if (weighted == 3) { // knowledge compilation
     *dDNNFNode::out << "O 0 0" << endl;
     *dDNNFNode::out << "A 0" << endl;
     sspp::Instance<dDNNFNode> ins(input_file, true);
@@ -325,6 +356,76 @@ int main(int argc, char *argv[]) {
       ddnnf_fs.close();
     }
     cout<<"c o Solved. "<<glob_timer.get()<<endl;
+    return 0;
+  } else if (weighted == 4 || weighted == 5) { // multiple weighted queries
+    assert((weighted == 4 && MDouble::N != 0) || (weighted == 5 && Mmpr::N != 0));
+    if(weighted == 4) {
+      sspp::Instance<MDouble> ins(input_file, true);
+      sspp::Preprocessor<MDouble> ppp;
+      ins = ppp.Preprocess(ins, "FPVE");
+      ins.UpdClauseInfo();
+      cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
+      if (ins.vars == 1 && ins.clauses.size() == 2) {
+        PrintSat(false);
+        PrintType(ins);
+        PrintExact(MDouble::Zero());
+        return 0;
+      }
+      MDouble ans0 = ins.weight_factor;
+      //cout<<"c o wf "<<ans0<<endl;
+      if (ins.vars == 0) {
+        PrintSat(true);
+        PrintType(ins);
+        PrintExact(ans0);
+        return 0;
+      }
+      sspp::Graph primal(ins.vars, ins.clauses);
+      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      cout<<"c o Now solving. "<<glob_timer.get()<<endl;
+      Solver<MDouble> theSolver(gen);
+      theSolver.config() = config_;
+      if (max_cache > 0) {
+        theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
+      }
+      MDouble ans1 = theSolver.solve(ins, tdecomp);
+      cout<<"c o Solved. "<<glob_timer.get()<<endl;
+      PrintSat(true);
+      PrintType(ins);
+      PrintExact(ans1*ans0);
+    } else {
+      sspp::Instance<Mmpr> ins(input_file, true);
+      sspp::Preprocessor<Mmpr> ppp;
+      ins = ppp.Preprocess(ins, "FPVE");
+      ins.UpdClauseInfo();
+      cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
+      if (ins.vars == 1 && ins.clauses.size() == 2) {
+        PrintSat(false);
+        PrintType(ins);
+        PrintExact(Mmpr::Zero());
+        return 0;
+      }
+      Mmpr ans0 = ins.weight_factor;
+      //cout<<"c o wf "<<ans0<<endl;
+      if (ins.vars == 0) {
+        PrintSat(true);
+        PrintType(ins);
+        PrintExact(ans0);
+        return 0;
+      }
+      sspp::Graph primal(ins.vars, ins.clauses);
+      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      cout<<"c o Now solving. "<<glob_timer.get()<<endl;
+      Solver<Mmpr> theSolver(gen);
+      theSolver.config() = config_;
+      if (max_cache > 0) {
+        theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
+      }
+      Mmpr ans1 = theSolver.solve(ins, tdecomp);
+      cout<<"c o Solved. "<<glob_timer.get()<<endl;
+      PrintSat(true);
+      PrintType(ins);
+      PrintExact(ans1*ans0);
+    }
     return 0;
   } else {
     assert(0);

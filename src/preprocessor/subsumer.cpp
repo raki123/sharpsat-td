@@ -121,10 +121,12 @@ vector<vector<Lit>> Subsumer::Subsume(const vector<vector<Lit>>& clauses) {
 			maxFreq = max(maxFreq, ALF[data[j]]);
 		}
 	}
+	// cSort[i] contains the literals that occur i times
 	vector<vector<int> > cSort(maxFreq + 1);
 	for (int i = 0; i < pid; i++) {
 		cSort[ALF[i]].push_back(i);
 	}
+	// permute the literal indices such that a < b implies that the freq(a) <= freq(b)
 	vector<size_t> perm(pid);
 	size_t i2 = 0;
 	for (int i = 0; i <= maxFreq; i++) {
@@ -136,9 +138,12 @@ vector<vector<Lit>> Subsumer::Subsume(const vector<vector<Lit>>& clauses) {
 		for (size_t j = D[i].B; j < D[i].E; j++) {
 			data[j] = perm[data[j]];
 		}
+		// sort the literals in the clause in ascending order (w.r.t. frequency)
 		std::sort(data.data() + D[i].B, data.data() + D[i].E);
 	}
+	// compares two clauses lexicographically
 	auto cmp = [&](vecP a, vecP b) {
+		// the first two lines should never trigger (right?)
 		if (getD(a, 0) < getD(b, 0)) return true;
 		else if (getD(a, 0) > getD(b, 0)) return false;
 		size_t sz = min(a.size(), b.size());
@@ -148,17 +153,22 @@ vector<vector<Lit>> Subsumer::Subsume(const vector<vector<Lit>>& clauses) {
 		}
 		return a.size() < b.size();
 	};
+	// map from minimum frequency literal to clause
 	vector<vector<vecP> > cSort2(pid);
 	for (size_t i = 0; i < D.size(); i++) {
 		cSort2[getD(D[i], 0)].push_back(D[i]);
 	}
 	size_t di = 0;
 	for (int i = 0; i < pid; i++) {
+		// sort the clauses which have i as the least frequent literal lexicographically
+		// meaning the ones with the least frequent literals are in the front
 		sort(cSort2[i].begin(), cSort2[i].end(), cmp);
+		// put the sorted clauses back into the data array
 		for (size_t j = 0; j < cSort2[i].size(); j++) {
 			D[di++] = cSort2[i][j];
 		}
 	}
+	// where do the clauses with least frequent literal i start
 	d0Index.resize(pid + 1);
 	int idx = 0;
 	for (size_t i = 0; i < D.size(); i++) {
@@ -173,6 +183,7 @@ vector<vector<Lit>> Subsumer::Subsume(const vector<vector<Lit>>& clauses) {
 	}
 	vector<int> subsumed(D.size());
 	size_t S = 0;
+	// first a cheap check for whether the lowest clause is a prefix 
 	for (size_t i = 1; i < D.size(); i++) {
 		if (D[S].size() <= D[i].size() && isPrefix(D[S], D[i])) {
 			subsumed[i] = true;

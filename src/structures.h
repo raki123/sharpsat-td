@@ -173,6 +173,190 @@ unsigned long long dDNNFNode::nodes = 2;
 unsigned long long dDNNFNode::edges = 0;
 ostream* dDNNFNode::out;
 
+struct Mmpr {
+ public:
+  static size_t N;
+  Mmpr() {
+    n.resize(N);
+    has = false;
+  }
+  Mmpr(const Mmpr& other) {
+    n.resize(N);
+    for(size_t i = 0; i < N; i++) {
+      n[i] = other.n[i];
+    }
+    has = other.has;
+  }
+  Mmpr& operator=(const Mmpr& other) {
+    for(size_t i = 0; i < N; i++) {
+      n[i] = other.n[i];
+    }
+    has = other.has;
+    return *this;
+  }
+  bool IsAlgZero() const {
+    return !has;
+  }
+  Mmpr operator*(Mmpr other) const {
+    Mmpr ret(other);
+    for(size_t i = 0; i < N; i++) {
+      ret.n[i] *= n[i];
+    }
+    ret.has = has && other.has;
+    return ret;
+  }
+  Mmpr operator+(Mmpr other) const {
+    Mmpr ret(other);
+    for(size_t i = 0; i < N; i++) {
+      ret.n[i] += n[i];
+    }
+    ret.has = has || other.has;
+    return ret;
+  }
+  Mmpr& operator*=(const Mmpr& other) {
+    for(size_t i = 0; i < N; i++) {
+      n[i] *= other.n[i];
+    }
+    has &= other.has;
+    return *this;
+  }
+  size_t InternalSize() const {
+    return 0;
+  }
+  mpfr::mpreal Get(size_t i) const {
+    assert(i < N);
+    return n[i];
+  }
+  static Mmpr Zero() {
+    Mmpr ret;
+    for(size_t i = 0; i < N; i++) {
+      ret.n[i] = 0;
+    }
+    ret.has = false;
+    return ret;
+  }
+  static Mmpr One() {
+    Mmpr ret;
+    for(size_t i = 0; i < N; i++) {
+      ret.n[i] = 1;
+    }
+    ret.has = true;
+    return ret;
+  }
+  static Mmpr FromString(string s){
+    Mmpr ret;
+    size_t start = 0;
+    size_t end = 0;
+    for(size_t i = 0; i < N - 1; i++) {
+      end = s.find(';', end + 1);
+      ret.n[i] = stod(s.substr(start, end - start));
+      start = end + 1;
+    }
+    ret.n[N - 1] = stod(s.substr(start));
+    ret.has = false;
+    for(size_t i = 0; i < N; i++) {
+      ret.has |= (ret.n[i] != 0);
+    }
+    return ret;
+  }
+ private:
+  std::vector<mpfr::mpreal> n;
+  bool has;
+};
+size_t Mmpr::N = 0;
+
+struct MDouble {
+ public:
+  static size_t N;
+  MDouble() {
+    n.resize(N);
+    has = false;
+  }
+  MDouble(const MDouble& other) {
+    n.resize(N);
+    for(size_t i = 0; i < N; i++) {
+      n[i] = other.n[i];
+    }
+    has = other.has;
+  }
+  MDouble& operator=(const MDouble& other) {
+    for(size_t i = 0; i < N; i++) {
+      n[i] = other.n[i];
+    }
+    has = other.has;
+    return *this;
+  }
+  bool IsAlgZero() const {
+    return !has;
+  }
+  MDouble operator*(MDouble other) const {
+    MDouble ret(other);
+    for(size_t i = 0; i < N; i++) {
+      ret.n[i] *= n[i];
+    }
+    ret.has = has && other.has;
+    return ret;
+  }
+  MDouble operator+(MDouble other) const {
+    MDouble ret(other);
+    for(size_t i = 0; i < N; i++) {
+      ret.n[i] += n[i];
+    }
+    ret.has = has || other.has;
+    return ret;
+  }
+  MDouble& operator*=(const MDouble& other) {
+    for(size_t i = 0; i < N; i++) {
+      n[i] *= other.n[i];
+    }
+    has &= other.has;
+    return *this;
+  }
+  size_t InternalSize() const {
+    return 0;
+  }
+  double Get(size_t i) const {
+    assert(i < N);
+    return n[i];
+  }
+  static MDouble Zero() {
+    MDouble ret;
+    for(size_t i = 0; i < N; i++) {
+      ret.n[i] = 0;
+    }
+    ret.has = false;
+    return ret;
+  }
+  static MDouble One() {
+    MDouble ret;
+    for(size_t i = 0; i < N; i++) {
+      ret.n[i] = 1;
+    }
+    ret.has = true;
+    return ret;
+  }
+  static MDouble FromString(string s){
+    MDouble ret;
+    size_t start = 0;
+    size_t end = 0;
+    for(size_t i = 0; i < N - 1; i++) {
+      end = s.find(';', end + 1);
+      ret.n[i] = stod(s.substr(start, end - start));
+      start = end + 1;
+    }
+    ret.n[N - 1] = stod(s.substr(start));
+    ret.has = false;
+    for(size_t i = 0; i < N; i++) {
+      ret.has |= (ret.n[i] != 0);
+    }
+    return ret;
+  }
+ private:
+  std::vector<double> n;
+  bool has;
+};
+size_t MDouble::N = 0;
+
 struct Smpr {
  public:
   Smpr() {
