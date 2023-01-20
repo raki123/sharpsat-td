@@ -123,14 +123,7 @@ TreeDecomposition Treedecomp(const Graph& graph, double time, string tmp_dir) {
 		auto passed = std::chrono::system_clock::now() - start;
 		auto remaining = std::chrono::duration<double>(time) - passed;
 		std::this_thread::sleep_for(remaining);
-		kill(pid,SIGINT); 
-		int status = 0;
-		ret = waitpid(pid, &status, 0);
-		if(ret == -1) {
-			throw std::runtime_error("waitpid() failed.");
-		}
-		assert(status >= 0);
-		assert(WIFEXITED(status));
+		kill(pid,SIGTERM); 
 		string tmp;
 		TreeDecomposition dec(0, 0);
 		while (true) {
@@ -171,6 +164,13 @@ TreeDecomposition Treedecomp(const Graph& graph, double time, string tmp_dir) {
 		}
 		fclose(file);
 		free(line);
+		int status = 0;
+		ret = waitpid(pid, &status, 0);
+		if(ret == -1) {
+			throw std::runtime_error("waitpid() failed.");
+		}
+		assert(status >= 0);
+		assert(WIFEXITED(status));
 		assert(dec.Width() <= claim_width);
 		cout << "c o width " << dec.Width() << endl;
 		assert(dec.Verify(graph));
