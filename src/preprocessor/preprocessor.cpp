@@ -477,28 +477,27 @@ void Preprocessor<T_num>::MergeAdjEquivs() {
 			continue;
 		}
 	}
-	for (Lit lit = 2; lit <= vars*2+1; lit++) {
-		assert(Neg(eqc[lit]) == eqc[Neg(lit)]);
-		if (eqc[lit] != lit) {
+	for (Var var = 1; var <= vars; var++) {
+		assert(Neg(eqc[PosLit(var)]) == eqc[Neg(PosLit(var))]);
+		assert(Neg(eqc[NegLit(var)]) == eqc[Neg(NegLit(var))]);
+		if (eqc[PosLit(var)] != PosLit(var)) {
 			if(weighted) {
 				// get rid of the weights.
 				// careful, the weights are saved for the original names!
-				Var ov = var_map[VarOf(lit)];
-				Var ov_keep = var_map[VarOf(eqc[lit])];
-				if(IsPos(lit) && IsPos(eqc[lit])) {
+				Var ov = var_map[var];
+				Var ov_keep = var_map[VarOf(eqc[PosLit(var)])];
+				if(IsPos(eqc[PosLit(var)])) {
 					weights[PosLit(ov_keep)] *= weights[PosLit(ov)];
-				} else if(IsPos(lit) && IsNeg(eqc[lit])) {
-					weights[NegLit(ov_keep)] *= weights[PosLit(ov)];
-				} else if(IsNeg(lit) && IsPos(eqc[lit])) {
-					weights[PosLit(ov_keep)] *= weights[NegLit(ov)];
-				} else {
-					assert(IsNeg(lit) && IsNeg(eqc[lit]));
 					weights[NegLit(ov_keep)] *= weights[NegLit(ov)];
+				} else {
+					assert(IsNeg(eqc[PosLit(var)]));
+					weights[PosLit(ov_keep)] *= weights[NegLit(ov)];
+					weights[NegLit(ov_keep)] *= weights[PosLit(ov)];
 				} 
 				weights[NegLit(ov)] = T_num::One();
 				weights[PosLit(ov)] = T_num::One();
 			}
-			clauses.push_back({PosLit(VarOf(lit))});
+			clauses.push_back({PosLit(var)});
 			SortAndDedup(clauses.back());
 		}
 	} 
