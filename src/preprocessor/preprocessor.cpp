@@ -480,13 +480,49 @@ void Preprocessor<T_num>::MergeAdjEquivs() {
 	for (Lit lit = 2; lit <= vars*2+1; lit++) {
 		assert(Neg(eqc[lit]) == eqc[Neg(lit)]);
 		if (eqc[lit] != lit) {
-			clauses.push_back({lit, Neg(eqc[lit])});
+			if(weighted) {
+				// get rid of the weights.
+				// careful, the weights are saved for the original names!
+				Var ov = var_map[VarOf(lit)];
+				Var ov_keep = var_map[VarOf(eqc[lit])];
+				if(IsPos(lit) && IsPos(eqc[lit])) {
+					weights[PosLit(ov_keep)] *= weights[PosLit(ov)];
+				} else if(IsPos(lit) && IsNeg(eqc[lit])) {
+					weights[NegLit(ov_keep)] *= weights[PosLit(ov)];
+				} else if(IsNeg(lit) && IsPos(eqc[lit])) {
+					weights[PosLit(ov_keep)] *= weights[NegLit(ov)];
+				} else {
+					assert(IsNeg(lit) && IsNeg(eqc[lit]));
+					weights[NegLit(ov_keep)] *= weights[NegLit(ov)];
+				} 
+				weights[NegLit(ov)] = T_num::One();
+				weights[PosLit(ov)] = T_num::One();
+			}
+			clauses.push_back({PosLit(VarOf(lit))});
 			SortAndDedup(clauses.back());
 		}
-	}
+	} 
 	for (const auto& clause : oracle.LearnedClauses()) {
 		learned_clauses.push_back(clause);
 	}
+	for (int i = 0; i < (int)learned_clauses.size(); i++) {
+		for (Lit& lit : learned_clauses[i]) {
+			lit = eqc[lit];
+		}
+		SortAndDedup(learned_clauses[i]);
+		bool taut = false;
+		for (int j = 1; j < (int)learned_clauses[i].size(); j++) {
+			if (VarOf(learned_clauses[i][j]) == VarOf(learned_clauses[i][j-1])) {
+				taut = true;
+			}
+		}
+		if (taut) {
+			SwapDel(learned_clauses, i);
+			i--;
+			continue;
+		}
+	}
+	Tighten(false);
 	Subsume();
 }
 
