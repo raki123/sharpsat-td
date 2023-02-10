@@ -334,7 +334,7 @@ int main(int argc, char *argv[]) {
     sspp::Preprocessor<dDNNFNode> ppp;
     ppp.SetMaxGTime(150);
     ppp.SetMaxSparsTime(120);
-    ins = ppp.Preprocess(ins, "FPVE");
+    ins = ppp.Preprocess(ins, "FPVEGV");
     ins.UpdClauseInfo();
     cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
     if (ins.vars == 1 && ins.clauses.size() == 2) {
