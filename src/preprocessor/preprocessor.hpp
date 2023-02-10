@@ -64,7 +64,7 @@ inline bool ValidTechniques(const string& techniques, bool weighted) {
 			      || c == 'S' // sparsification
 			      || c == 'E') { // equivalence merging
 			// ok
-		} else if (c == 'G' && !weighted) { // B+E
+		} else if (c == 'G') { // B+E
 			// ok
 		} else if (c == 'I' && !weighted) { // Inc B+E
 			// ok

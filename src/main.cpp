@@ -252,6 +252,8 @@ int main(int argc, char *argv[]) {
     if (weighted == 1) {
       sspp::Instance<SDouble> ins(input_file, true);
       sspp::Preprocessor<SDouble> ppp;
+      ppp.SetMaxGTime(150);
+      ppp.SetMaxSparsTime(120);
       ins = ppp.Preprocess(ins, "FPVE");
       ins.UpdClauseInfo();
       cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
@@ -288,6 +290,8 @@ int main(int argc, char *argv[]) {
     } else {
       sspp::Instance<Smpr> ins(input_file, true);
       sspp::Preprocessor<Smpr> ppp;
+      ppp.SetMaxGTime(150);
+      ppp.SetMaxSparsTime(120);
       ins = ppp.Preprocess(ins, "FPVE");
       ins.UpdClauseInfo();
       cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
@@ -328,6 +332,8 @@ int main(int argc, char *argv[]) {
     *dDNNFNode::out << "A 0" << endl;
     sspp::Instance<dDNNFNode> ins(input_file, true);
     sspp::Preprocessor<dDNNFNode> ppp;
+    ppp.SetMaxGTime(150);
+    ppp.SetMaxSparsTime(120);
     ins = ppp.Preprocess(ins, "FPVE");
     ins.UpdClauseInfo();
     cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
@@ -362,7 +368,9 @@ int main(int argc, char *argv[]) {
     if(weighted == 4) {
       sspp::Instance<MDouble> ins(input_file, true);
       sspp::Preprocessor<MDouble> ppp;
-      ins = ppp.Preprocess(ins, "FPVE");
+      ppp.SetMaxGTime(150);
+      ppp.SetMaxSparsTime(120);
+      ins = ppp.Preprocess(ins, "FPVEGV");
       ins.UpdClauseInfo();
       cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
       if (ins.vars == 1 && ins.clauses.size() == 2) {
@@ -395,7 +403,9 @@ int main(int argc, char *argv[]) {
     } else {
       sspp::Instance<Mmpr> ins(input_file, true);
       sspp::Preprocessor<Mmpr> ppp;
-      ins = ppp.Preprocess(ins, "FPVE");
+      ppp.SetMaxGTime(150);
+      ppp.SetMaxSparsTime(120);
+      ins = ppp.Preprocess(ins, "FPVEGV");
       ins.UpdClauseInfo();
       cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
       if (ins.vars == 1 && ins.clauses.size() == 2) {

@@ -548,7 +548,7 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 					}
 				}
 				// TODO magic constant 4
-				if (min(poss, negs) <= 4) {
+				if (min(poss, negs) <= 4 && (!weighted || weights[PosLit(var_map[v])] == weights[NegLit(var_map[v])])) {
 					simps++;
 					extra[v] = vars + simps;
 				}

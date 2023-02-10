@@ -40,6 +40,9 @@ struct SDouble {
     has = other.has;
     return *this;
   }
+  bool operator==(const SDouble& other) const {
+    return n == other.n && has == other.has;
+  }
   bool IsAlgZero() const {
     return !has;
   }
@@ -101,6 +104,10 @@ struct dDNNFNode {
   dDNNFNode& operator=(const dDNNFNode& other) {
     id = other.id;
     return *this;
+  }
+
+  bool operator==(const dDNNFNode& other) const {
+    return id == other.id;
   }
 
   bool IsAlgZero() const {
@@ -194,6 +201,14 @@ struct Mmpr {
     has = other.has;
     return *this;
   }
+  bool operator==(const Mmpr& other) const {
+    for(size_t i = 0; i < N; i++) {
+      if(n[i] != other.n[i]) {
+        return false;
+      }
+    }
+    return has == other.has;
+  }
   bool IsAlgZero() const {
     return !has;
   }
@@ -286,6 +301,14 @@ struct MDouble {
     has = other.has;
     return *this;
   }
+  bool operator==(const MDouble& other) const {
+    for(size_t i = 0; i < N; i++) {
+      if(n[i] != other.n[i]) {
+        return false;
+      }
+    }
+    return has == other.has;
+  }
   bool IsAlgZero() const {
     return !has;
   }
@@ -377,6 +400,9 @@ struct Smpr {
     has = other.has;
     return *this;
   }
+  bool operator==(const Smpr& other) const {
+    return n == other.n && has == other.has;
+  }
   bool IsAlgZero() const {
     return !has;
   }
@@ -443,6 +469,9 @@ struct Smpz {
     n = other.n;
     has = other.has;
     return *this;
+  }
+  bool operator==(const Smpz& other) const {
+    return n == other.n && has == other.has;
   }
   bool IsAlgZero() const {
     return !has;
