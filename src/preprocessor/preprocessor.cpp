@@ -521,34 +521,95 @@ void Preprocessor<T_num>::MergeAdjEquivs() {
 			continue;
 		}
 	}
-	Tighten(false);
+	Tighten(true);
 	Subsume();
 }
 
 template<class T_num>
 bool Preprocessor<T_num>::EliminateDefSimplicial() {
 	g_timer.start();
+	// find out in which bag of the td a variable occurs last (w.r.t. post order traversal of the TD)
 	Graph graph(vars, clauses);
-	TWPP twpp;
-	graph = twpp.PP(graph);
+	sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(graph, 0.1, "/tmp/");
+	std::vector<std::vector<int>> bags = tdecomp.Bags();
+	assert(bags.size() == tdecomp.nbags() + 1);
+	for(auto& bag : bags) {
+		std::sort(bag.begin(), bag.end());
+	}
+	std::vector<int> last(vars + 1, 0);
+	std::vector<int> visited(tdecomp.nbags() + 1, false);
+	// stack for storing the tuple of (parent, node, remaining neighbors)
+	std::vector<std::tuple<int, int, std::vector<Lit>::const_iterator>> stack;
+	stack.push_back(make_tuple(-1, 1, tdecomp.Neighbors(1).begin()));
+	uint16_t ctr = 0;
+	std::vector<uint16_t> ctr_to_bag(tdecomp.nbags());
+	while(!stack.empty()) {
+		std::tuple<int, int, std::vector<Lit>::const_iterator> tup = stack.back();
+		stack.pop_back();
+		int parent = get<0>(tup);
+		int cur = get<1>(tup);
+		std::vector<Lit>::const_iterator it = get<2>(tup);
+		if(it != tdecomp.Neighbors(cur).end() && *it == parent) {
+			it++;
+		}
+		if(it != tdecomp.Neighbors(cur).end()) {
+			auto next = make_tuple(cur, *it, tdecomp.Neighbors(*it).begin());
+			assert(!visited[*it]);
+			visited[*it] = true;
+			it++;
+			stack.push_back(make_tuple(parent, cur, it));
+			stack.push_back(next);
+		} else {
+			ctr_to_bag[ctr] = cur;
+			for(const auto& v : bags[cur]) {
+				last[v] = ctr;
+			}
+			ctr++;
+		}
+	}
+	assert(ctr == tdecomp.nbags());
 	bool found = false;
 	while (true) {
 		int simps = 0;
 		vector<Var> extra(vars+1);
+		vector<Var> poss(vars+1);
+		vector<Var> negs(vars+1);
+		for (const auto& clause : clauses) {
+			for(const auto& lit : clause) {
+				if(IsPos(lit)) {
+					poss[VarOf(lit)]++;
+				} else {
+					negs[VarOf(lit)]++;
+				}
+			}
+		}
 		for (Var v = 1; v <= vars; v++) {
-			if (!graph.Neighbors(v).empty() && graph.IsSimp(v)) {
-				int poss = 0;
-				int negs = 0;
-				for (const auto& clause : clauses) {
-					if (BS(clause, PosLit(v))) {
-						poss++;
-					}
-					if (BS(clause, NegLit(v))) {
-						negs++;
+			// TODO magic constant 4
+			if (!graph.Neighbors(v).empty() 
+				&& min(poss[v], negs[v]) <= 4 
+				&& (!weighted || weights[PosLit(var_map[v])] == weights[NegLit(var_map[v])]) 
+				&& last[v] != 0) {
+				int min_ctr = last[v];
+				for(const auto& vp : graph.Neighbors(v)) {
+					min_ctr = std::min(min_ctr, last[vp]);
+				}
+				std::vector<Lit> neighs = graph.Neighbors(v);
+				if(!BS(bags[min_ctr], v) || neighs.size() + 1 > bags[min_ctr].size()) {
+					continue;
+				}
+				std::sort(neighs.begin(), neighs.end());
+				size_t idx_1 = 0, idx_2 = 0;
+				while(idx_1 < bags[min_ctr].size() && idx_2 < neighs.size()) {
+					if(bags[min_ctr][idx_1] == neighs[idx_2]) {
+						idx_1++;
+						idx_2++;
+					} else if(bags[min_ctr][idx_1] < neighs[idx_2]) {
+						idx_2++;
+					} else {
+						idx_1 = bags[min_ctr].size();
 					}
 				}
-				// TODO magic constant 4
-				if (min(poss, negs) <= 4 && (!weighted || weights[PosLit(var_map[v])] == weights[NegLit(var_map[v])])) {
+				if(idx_2 == neighs.size()) {
 					simps++;
 					extra[v] = vars + simps;
 				}

@@ -110,6 +110,7 @@ bool Graph::IsConnectedOrIsolated() const {
 
 void Graph::AddEdge(int v, int u) {
   if (HasEdge(v, u)) return;
+  assert(!HasEdge(u,v));
   assert(v != u);
   m_++;
   adj_list_[v].push_back(u);
