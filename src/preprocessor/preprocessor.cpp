@@ -674,6 +674,33 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 		}
 		for (Var v = 1; v <= vars; v++) {
 			if (def[v]) {
+				int min_ctr = last[v];
+				for(const auto& vp : graph.Neighbors(v)) {
+					min_ctr = std::min(min_ctr, last[vp]);
+				}
+				std::vector<Lit> neighs = graph.Neighbors(v);
+				if(!BS(bags[min_ctr], v) || neighs.size() + 1 > bags[min_ctr].size()) {
+					def[v] = false;
+					defs--;
+					continue;
+				}
+				std::sort(neighs.begin(), neighs.end());
+				size_t idx_1 = 0, idx_2 = 0;
+				while(idx_1 < bags[min_ctr].size() && idx_2 < neighs.size()) {
+					if(bags[min_ctr][idx_1] == neighs[idx_2]) {
+						idx_1++;
+						idx_2++;
+					} else if(bags[min_ctr][idx_1] < neighs[idx_2]) {
+						idx_2++;
+					} else {
+						idx_1 = bags[min_ctr].size();
+					}
+				}
+				if(idx_2 != neighs.size()) {
+					def[v] = false;
+					defs--;
+					continue;
+				}
 				auto nbs = graph.Neighbors(v);
 				graph.RemoveEdgesBetween(v, nbs);
 				vector<vector<Lit>> pos;
