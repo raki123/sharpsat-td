@@ -528,48 +528,64 @@ void Preprocessor<T_num>::MergeAdjEquivs() {
 template<class T_num>
 bool Preprocessor<T_num>::EliminateDefSimplicial() {
 	g_timer.start();
-	// find out in which bag of the td a variable occurs last (w.r.t. post order traversal of the TD)
 	Graph graph(vars, clauses);
-	sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(graph, 0.1, "/tmp/");
-	std::vector<std::vector<int>> bags = tdecomp.Bags();
-	assert(bags.size() == tdecomp.nbags() + 1);
-	for(auto& bag : bags) {
-		std::sort(bag.begin(), bag.end());
-	}
-	std::vector<int> last(vars + 1, 0);
-	std::vector<int> visited(tdecomp.nbags() + 1, false);
-	// stack for storing the tuple of (parent, node, remaining neighbors)
-	std::vector<std::tuple<int, int, std::vector<Lit>::const_iterator>> stack;
-	stack.push_back(make_tuple(-1, 1, tdecomp.Neighbors(1).begin()));
-	uint16_t ctr = 0;
-	std::vector<uint16_t> ctr_to_bag(tdecomp.nbags());
-	while(!stack.empty()) {
-		std::tuple<int, int, std::vector<Lit>::const_iterator> tup = stack.back();
-		stack.pop_back();
-		int parent = get<0>(tup);
-		int cur = get<1>(tup);
-		std::vector<Lit>::const_iterator it = get<2>(tup);
-		if(it != tdecomp.Neighbors(cur).end() && *it == parent) {
-			it++;
-		}
-		if(it != tdecomp.Neighbors(cur).end()) {
-			auto next = make_tuple(cur, *it, tdecomp.Neighbors(*it).begin());
-			assert(!visited[*it]);
-			visited[*it] = true;
-			it++;
-			stack.push_back(make_tuple(parent, cur, it));
-			stack.push_back(next);
-		} else {
-			ctr_to_bag[ctr] = cur;
-			for(const auto& v : bags[cur]) {
-				last[v] = ctr;
+	sspp::TreeDecomposition tdecomp(1,0);
+	std::vector<std::vector<int>> bags;
+	std::vector<int> last;
+	std::vector<uint16_t> ctr_to_bag;
+	bool found = true;
+	bool first = true;
+	size_t cur_width = vars + 1;
+	while (found) {
+		found = false;
+		graph = Graph(vars, clauses);
+		sspp::TreeDecomposition newtdecomp = sspp::decomp::Treedecomp(graph, 10, "/tmp/");
+		if(newtdecomp.Width() <= cur_width) {
+			std::cerr << "Taking new td " << newtdecomp.Width() << std::endl;
+			tdecomp = newtdecomp;
+			bags = tdecomp.Bags();
+			for(auto& bag : bags) {
+				std::sort(bag.begin(), bag.end());
 			}
-			ctr++;
+		} else {
+			std::cerr << "Taking old td " << cur_width << std::endl;
 		}
-	}
-	assert(ctr == tdecomp.nbags());
-	bool found = false;
-	while (true) {
+		last.clear();
+		last.resize(vars + 1);
+		assert(bags.size() == tdecomp.nbags() + 1);
+		std::vector<int> visited(tdecomp.nbags() + 1, false);
+		// stack for storing the tuple of (parent, node, remaining neighbors)
+		std::vector<std::tuple<int, int, std::vector<Lit>::const_iterator>> stack;
+		stack.push_back(make_tuple(-1, 1, tdecomp.Neighbors(1).begin()));
+		uint16_t ctr = 0;
+		ctr_to_bag.clear();
+		ctr_to_bag.resize(tdecomp.nbags());
+		while(!stack.empty()) {
+			std::tuple<int, int, std::vector<Lit>::const_iterator> tup = stack.back();
+			stack.pop_back();
+			int parent = get<0>(tup);
+			int cur = get<1>(tup);
+			std::vector<Lit>::const_iterator it = get<2>(tup);
+			if(it != tdecomp.Neighbors(cur).end() && *it == parent) {
+				it++;
+			}
+			if(it != tdecomp.Neighbors(cur).end()) {
+				auto next = make_tuple(cur, *it, tdecomp.Neighbors(*it).begin());
+				assert(!visited[*it]);
+				visited[*it] = true;
+				it++;
+				stack.push_back(make_tuple(parent, cur, it));
+				stack.push_back(next);
+			} else {
+				ctr_to_bag[ctr] = cur;
+				for(const auto& v : bags[cur]) {
+					last[v] = ctr;
+				}
+				ctr++;
+			}
+		}
+		assert(ctr == tdecomp.nbags());
+		
 		int simps = 0;
 		vector<Var> extra(vars+1);
 		vector<Var> poss(vars+1);
@@ -586,7 +602,7 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 		for (Var v = 1; v <= vars; v++) {
 			// TODO magic constant 4
 			if (!graph.Neighbors(v).empty() 
-				&& min(poss[v], negs[v]) <= 4 
+				&& min(poss[v], negs[v]) <= 4
 				&& (!weighted || weights[PosLit(var_map[v])] == weights[NegLit(var_map[v])]) 
 				&& last[v] != 0) {
 				int min_ctr = last[v];
@@ -618,13 +634,8 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 		if (simps == 0) {
 			Tighten(true);
 			Subsume();
-			if (found && g_timer.get() < max_g_time) {
-				EliminateDefSimplicial();
-				return true;
-			} else {
-				g_timer.stop();
-				return false;
-			}
+			g_timer.stop();
+			return false;
 		}
 		Oracle<T_num> oracle(vars + 2*simps, {});
 		for (const auto& cls : {clauses, learned_clauses}) {
@@ -669,6 +680,7 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 				if (!oracle.Solve(assumps)) {
 					def[v] = 1;
 					defs++;
+					found = true;
 				}
 			}
 		}
@@ -771,18 +783,21 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 				i--;
 			}
 		}
-		Subsume();
-		if (!defs) {
-			Tighten(true);
-			if (found && g_timer.get() < max_g_time) {
-				EliminateDefSimplicial();
-				return true;
-			} else {
-				g_timer.stop();
-				return false;
+		cur_width = 0;
+		for(auto& bag : bags) {
+			std::cerr << "Width bef " << bag.size() << std::endl;
+			for(size_t i = 0; i < bag.size(); i++) {
+				if(def[bag[i]]) {
+					SwapDel(bag, i);
+					i--;
+				}
 			}
+			if(bag.size() > 0) {
+				cur_width = std::max(cur_width, bag.size() - 1);
+			}
+			std::cerr << "Width aft " << bag.size() << std::endl;
 		}
-		found = true;
+		Subsume();
 	}
 	g_timer.stop();
 }
