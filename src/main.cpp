@@ -397,8 +397,7 @@ int main(int argc, char *argv[]) {
       if (max_cache > 0) {
         theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
       }
-      assert(ppp.tdecomp->Verify(primal));
-      MDouble ans1 = theSolver.solve(ins, *ppp.tdecomp);
+      MDouble ans1 = theSolver.solve(ins, *tdecomp);
       cout<<"c o Solved. "<<glob_timer.get()<<endl;
       PrintSat(true);
       PrintType(ins);
