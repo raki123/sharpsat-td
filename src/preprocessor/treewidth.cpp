@@ -25,24 +25,23 @@ namespace sspp {
 
 namespace decomp {
 
-TreeDecomposition Treedecomp(const Graph& graph, double time, string tmp_dir) {
+TreeDecomposition * Treedecomp(const Graph& graph, double time, string tmp_dir) {
 	int n = graph.n();
 	if (n == 0) {
-		TreeDecomposition dec(0, 0);
-		return dec;
+		return new TreeDecomposition(0, 0);
 	}
 	if (n == 1) {
-		TreeDecomposition dec(1, 1);
-		dec.SetBag(1, {0});
+		TreeDecomposition *dec = new TreeDecomposition(1, 1);
+		dec->SetBag(1, {0});
 		return dec;
 	}
 	if (time < 0.099) {
-		TreeDecomposition dec(1, n);
+		TreeDecomposition *dec = new TreeDecomposition(1, n);
 		vector<int> all;
 		for (int i = 0; i < n; i++) {
 			all.push_back(i);
 		}
-		dec.SetBag(1, all);
+		dec->SetBag(1, all);
 		return dec;
 	}
 	assert(n >= 2);
@@ -125,7 +124,7 @@ TreeDecomposition Treedecomp(const Graph& graph, double time, string tmp_dir) {
 		std::this_thread::sleep_for(remaining);
 		kill(pid,SIGTERM); 
 		string tmp;
-		TreeDecomposition dec(0, 0);
+		TreeDecomposition * dec = NULL;
 		while (true) {
 			read = getline(&line, &len, file);
 			if(read == -1) {
@@ -145,8 +144,10 @@ TreeDecomposition Treedecomp(const Graph& graph, double time, string tmp_dir) {
 				ss>>bs>>claim_width>>nn;
 				assert(nn == n);
 				claim_width--;
-				dec = TreeDecomposition(bs, nn);
+				assert(dec == NULL);
+				dec = new TreeDecomposition(bs, nn);
 			} else if (tmp == "b") {
+				assert(dec != NULL);
 				int bid;
 				ss>>bid;
 				vector<int> bag;
@@ -154,12 +155,13 @@ TreeDecomposition Treedecomp(const Graph& graph, double time, string tmp_dir) {
 				while (ss>>v) {
 					bag.push_back(v-1);
 				}
-				dec.SetBag(bid, bag);
+				dec->SetBag(bid, bag);
 			} else {
+				assert(dec != NULL);
 				int a = stoi(tmp);
 				int b;
 				ss>>b;
-				dec.AddEdge(a, b);
+				dec->AddEdge(a, b);
 			}
 		}
 		fclose(file);
@@ -171,9 +173,9 @@ TreeDecomposition Treedecomp(const Graph& graph, double time, string tmp_dir) {
 		}
 		assert(status >= 0);
 		assert(WIFEXITED(status));
-		assert(dec.Width() <= claim_width);
-		cout << "c o width " << dec.Width() << endl;
-		assert(dec.Verify(graph));
+		assert(dec->Width() <= claim_width);
+		cout << "c o width " << dec->Width() << endl;
+		assert(dec->Verify(graph));
 		return dec;
 	}
 }

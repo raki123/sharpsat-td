@@ -817,6 +817,10 @@ bool TreeDecomposition::dfs(int x, int v, int p, vector<int>& u) const {
 }
 
 bool TreeDecomposition::Verify(const Graph& graph) const {
+  assert(tree.n() == bs + 1);
+  if(n != graph.n()) {
+    std::cerr << n << " " << graph.n() << std::endl;
+  }
 	assert(n == graph.n());
 	vector<vector<char>> aps(n);
 	for (int i = 0; i < n; i++) {
@@ -830,10 +834,10 @@ bool TreeDecomposition::Verify(const Graph& graph) const {
 		}
 	}
 	for (int i = 0; i < n; i++) {
-		if (aps[i][i] == 0) return false;
+		if (aps[i][i] == 0) { std::cerr << "symfail "<< i << std::endl; return false; }
 	}
 	for (auto e : graph.Edges()) {
-		if (aps[e.F][e.S] == 0) return false;
+		if (aps[e.F][e.S] == 0) { std::cerr << "edgefail " <<  e.F << " " << e.S << std::endl;  return false; }
 	}
 	vector<int> u(bs+1);
 	for (int i = 1; i <= bs; i++) {
@@ -845,10 +849,11 @@ bool TreeDecomposition::Verify(const Graph& graph) const {
 			if (InBag(j, i)) {
 				if (!f) {
 					bool ok = dfs(j, i, 0, u);
-					if (!ok) return false;
+					if (!ok) { std::cerr << "dfs1fail" << std::endl; return false; }
 					f = true;
 				}
 				if (u[j] != i) {
+          std::cerr << "dfs2fail " << u[j] << " " << i << std::endl; 
 					return false;
 				}
 			}
@@ -857,7 +862,7 @@ bool TreeDecomposition::Verify(const Graph& graph) const {
 	return true;
 }
 
-const vector<vector<int>>& TreeDecomposition::Bags() const {
+vector<vector<int>>& TreeDecomposition::Bags() {
 	return bags;
 }
 
@@ -956,4 +961,5 @@ vector<int> TreeDecomposition::GetOrd() const {
   }
   return ret;
 }
+
 } // namespace sspp

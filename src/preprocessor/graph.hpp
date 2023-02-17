@@ -100,10 +100,10 @@ public:
   std::vector<std::vector<int>> DistanceMatrix() const;
 
   int MaximalIS(const Bitset& vs) const;
-
+  
   Graph(const Graph& rhs) = default;
   Graph& operator=(const Graph& rhs) = default;
-  
+
 private:
   int n_, m_;
   StaticSet<int> vertex_map_;
@@ -114,7 +114,7 @@ private:
 class TreeDecomposition {
  public:
  	explicit TreeDecomposition(int bs_, int n_);
- 	const vector<vector<int>>& Bags() const;
+ 	vector<vector<int>>& Bags();
  	const vector<int>& Neighbors(int b) const;
  	int nverts() const;
  	int nbags() const;
@@ -126,8 +126,8 @@ class TreeDecomposition {
  	Graph Chordal() const;
  	int Centroid() const;
   vector<int> GetOrd() const;
- private:
  	int bs, n, width;
+ private:
  	Graph tree;
  	vector<vector<int>> bags;
   void OdDes(int b, int p, int d, vector<int>& ret) const;

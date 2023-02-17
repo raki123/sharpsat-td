@@ -1196,7 +1196,7 @@ bool Oracle<T_num>::FreezeUnit(Lit unit) {
 }
 
 template<class T_num>
-void Oracle<T_num>::AddClause(const vector<Lit>& clause, bool entailed) {
+void Oracle<T_num>::AddClause(const vector<Lit> clause, bool entailed) {
 	AddOrigClause(clause, entailed);
 }
 

@@ -53,7 +53,7 @@ class Oracle {
   bool FreezeUnit(Lit unit);
   bool FreezeUnits(const vector<Lit>& units);
   bool AddClauseIfNeeded(vector<Lit> clause, bool entailed);
-  void AddClause(const vector<Lit>& clause, bool entailed);
+  void AddClause(const vector<Lit> clause, bool entailed);
   void PrintStats() const;
   double ConflictRate(int samples);
   vector<vector<Lit>> AllClauses() const;
