@@ -700,6 +700,11 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 		}
 		for (Var v = 1; v <= vars; v++) {
 			if (def[v]) {
+				if(min(poss[v], negs[v]) > 3) {
+					def[v] = false;
+					defs--;
+					continue;
+				}
 				int min_ctr = last[v];
 				for(const auto vp : graph.Neighbors(v)) {
 					assert(vp <= vars);
@@ -755,6 +760,13 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 							} else {
 								neg.push_back(clauses[i]);
 							}
+							for(auto lit : clauses[i]) {
+								if(IsPos(lit)) {
+									poss[VarOf(lit)]--;
+								} else {
+									negs[VarOf(lit)]--;
+								}
+							}
 							SwapDel(clauses, i);
 							i--;
 							break;
@@ -790,6 +802,13 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 						}
 						if (!taut) {
 							assert(IsClause(res));
+							for(auto lit : res) {
+								if(IsPos(lit)) {
+									poss[VarOf(lit)]++;
+								} else {
+									negs[VarOf(lit)]++;
+								}
+							}
 							clauses.push_back(res);
 						}
 					}
