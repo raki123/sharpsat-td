@@ -1,7 +1,7 @@
 #include "solver.h"
 #include "preprocessor/instance.hpp"
 #include "preprocessor/preprocessor.hpp"
-#include "preprocessor/treewidth.hpp"
+#include "preprocessor/treedecomposition.hpp"
 
 #include "solver_config.h"
 
@@ -99,7 +99,6 @@ int main(int argc, char *argv[]) {
   // Randomness used only for component hashing
   std::mt19937_64 gen(1337);
 
-  string tmp_dir;
   double decot = -1;
 
   SolverConfiguration config_;
@@ -142,12 +141,6 @@ int main(int argc, char *argv[]) {
         return -1;
       }
       ddnnf_fs.open(argv[++i], ios_base::out);
-    } else if (strcmp(argv[i], "-tmpdir") == 0) {
-      if (argc <= i + 1) {
-        cout << " wrong parameters" << endl;
-        return -1;
-      }
-      tmp_dir = string(argv[i+1]);
     } else if (strcmp(argv[i], "-cs") == 0) {
       if (argc <= i + 1) {
         cout << " wrong parameters" << endl;
@@ -205,10 +198,7 @@ int main(int argc, char *argv[]) {
     dDNNFNode::out = &cout;
   }
 
-  assert(!tmp_dir.empty());
   assert(decot > 0.0001 && decot < 10000);
-
-  sspp::TreeDecomposition * tdecomp = NULL;
 
   if (weighted == 0) {
     sspp::Instance<Smpz> ins(input_file, false);
@@ -234,15 +224,18 @@ int main(int argc, char *argv[]) {
       PrintExact(ans0);
       return 0;
     }
-    sspp::Graph primal(ins.vars, ins.clauses);
-    tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+    sspp::TreeDecomposition tdecomp = ppp.tdecomp;
+    if(!ppp.td_initialized) {
+      sspp::Graph primal(ins.vars, ins.clauses);
+      tdecomp = sspp::TreeDecomposition(primal, decot);
+    }
     cout<<"c o Now solving. "<<glob_timer.get()<<endl;
     Solver<Smpz> theSolver(gen);
     theSolver.config() = config_;
     if (max_cache > 0) {
       theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
     }
-    mpz_class ans = theSolver.solve(ins, *tdecomp).Get();
+    mpz_class ans = theSolver.solve(ins, tdecomp).Get();
     cout<<"c o Solved. "<<glob_timer.get()<<endl;
     ans *= ans0;
     PrintSat(true);
@@ -275,15 +268,18 @@ int main(int argc, char *argv[]) {
         PrintDouble(ans0);
         return 0;
       }
-      sspp::Graph primal(ins.vars, ins.clauses);
-      tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      sspp::TreeDecomposition tdecomp = ppp.tdecomp;
+      if(!ppp.td_initialized) {
+        sspp::Graph primal(ins.vars, ins.clauses);
+        tdecomp = sspp::TreeDecomposition(primal, decot);
+      }
       cout<<"c o Now solving. "<<glob_timer.get()<<endl;
       Solver<SDouble> theSolver(gen);
       theSolver.config() = config_;
       if (max_cache > 0) {
         theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
       }
-      double ans1 = theSolver.solve(ins, *tdecomp).Get();
+      double ans1 = theSolver.solve(ins, tdecomp).Get();
       cout<<"c o Solved. "<<glob_timer.get()<<endl;
       PrintSat(true);
       PrintType(ins);
@@ -313,15 +309,18 @@ int main(int argc, char *argv[]) {
         PrintExact(ans0);
         return 0;
       }
-      sspp::Graph primal(ins.vars, ins.clauses);
-      tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      sspp::TreeDecomposition tdecomp = ppp.tdecomp;
+      if(!ppp.td_initialized) {
+        sspp::Graph primal(ins.vars, ins.clauses);
+        tdecomp = sspp::TreeDecomposition(primal, decot);
+      }
       cout<<"c o Now solving. "<<glob_timer.get()<<endl;
       Solver<Smpr> theSolver(gen);
       theSolver.config() = config_;
       if (max_cache > 0) {
         theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
       }
-      mpfr::mpreal ans1 = theSolver.solve(ins, *tdecomp).Get();
+      mpfr::mpreal ans1 = theSolver.solve(ins, tdecomp).Get();
       cout<<"c o Solved. "<<glob_timer.get()<<endl;
       PrintSat(true);
       PrintType(ins);
@@ -347,15 +346,18 @@ int main(int argc, char *argv[]) {
       PrintSat(true);
       PrintType(ins);
     } else {
-      sspp::Graph primal(ins.vars, ins.clauses);
-      tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      sspp::TreeDecomposition tdecomp = ppp.tdecomp;
+      if(!ppp.td_initialized) {
+        sspp::Graph primal(ins.vars, ins.clauses);
+        tdecomp = sspp::TreeDecomposition(primal, decot);
+      }
       cout<<"c o Now solving. "<<glob_timer.get()<<endl;
       Solver<dDNNFNode> theSolver(gen);
       theSolver.config() = config_;
       if (max_cache > 0) {
         theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
       }
-      dDNNFNode ans1 = theSolver.solve(ins, *tdecomp);
+      dDNNFNode ans1 = theSolver.solve(ins, tdecomp);
       ans1 * ins.weight_factor;
     }
     if(ddnnf_fs.is_open()) {
@@ -389,15 +391,18 @@ int main(int argc, char *argv[]) {
         PrintExact(ans0);
         return 0;
       }
-      sspp::Graph primal(ins.vars, ins.clauses);
-      tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      sspp::TreeDecomposition tdecomp = ppp.tdecomp;
+      if(!ppp.td_initialized) {
+        sspp::Graph primal(ins.vars, ins.clauses);
+        tdecomp = sspp::TreeDecomposition(primal, decot);
+      }
       cout<<"c o Now solving. "<<glob_timer.get()<<endl;
       Solver<MDouble> theSolver(gen);
       theSolver.config() = config_;
       if (max_cache > 0) {
         theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
       }
-      MDouble ans1 = theSolver.solve(ins, *tdecomp);
+      MDouble ans1 = theSolver.solve(ins, tdecomp);
       cout<<"c o Solved. "<<glob_timer.get()<<endl;
       PrintSat(true);
       PrintType(ins);
@@ -424,21 +429,23 @@ int main(int argc, char *argv[]) {
         PrintExact(ans0);
         return 0;
       }
-      sspp::Graph primal(ins.vars, ins.clauses);
-      tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      sspp::TreeDecomposition tdecomp = ppp.tdecomp;
+      if(!ppp.td_initialized) {
+        sspp::Graph primal(ins.vars, ins.clauses);
+        tdecomp = sspp::TreeDecomposition(primal, decot);
+      }
       cout<<"c o Now solving. "<<glob_timer.get()<<endl;
       Solver<Mmpr> theSolver(gen);
       theSolver.config() = config_;
       if (max_cache > 0) {
         theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
       }
-      Mmpr ans1 = theSolver.solve(ins, *tdecomp);
+      Mmpr ans1 = theSolver.solve(ins, tdecomp);
       cout<<"c o Solved. "<<glob_timer.get()<<endl;
       PrintSat(true);
       PrintType(ins);
       PrintExact(ans1*ans0);
     }
-    delete tdecomp;
     return 0;
   } else {
     assert(0);

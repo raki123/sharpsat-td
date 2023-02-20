@@ -2,7 +2,6 @@
 
 #include "instance.hpp"
 #include "utils.hpp"
-#include "graph.hpp"
 
 namespace sspp {
 namespace oracle {

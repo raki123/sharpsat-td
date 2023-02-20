@@ -2,6 +2,7 @@
 
 #include "utils.hpp"
 #include "instance.hpp"
+#include "treedecomposition.hpp"
 
 #include <map>
 
@@ -14,6 +15,9 @@ class Preprocessor {
  	int FreeVars() const;
  	void SetMaxGTime(double time);
  	void SetMaxSparsTime(double time);
+
+	bool td_initialized = false;
+	TreeDecomposition tdecomp;
 
  private:
  	bool DoTechniques(const string& techniques, int l, int r);

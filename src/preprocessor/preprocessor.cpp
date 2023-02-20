@@ -2,8 +2,6 @@
 
 #include "subsumer.hpp"
 #include "oracle.hpp"
-#include "treewidth.hpp"
-#include "twpp.hpp"
 
 namespace sspp {
 using oracle::Oracle;
@@ -128,6 +126,21 @@ void Preprocessor<T_num>::Tighten(bool loop) {
 			new_var_map[map_to[v]] = var_map[v];
 		}
 	}
+	for(auto& bag : tdecomp.Bags()) {
+		for(size_t i = 0; i < bag.size(); i++) {
+			if(bag[i] != 0) {
+				if(map_to[bag[i]] != 0) {
+					bag[i] = map_to[bag[i]]; 
+				} else {
+					std::swap(bag[i], bag.back());
+					bag.pop_back();
+					i--;
+				}
+			}
+		}
+		std::sort(bag.begin(), bag.end());
+	}
+	tdecomp.n = nvars + 1;
 	var_map = new_var_map;
 	vars = nvars;
 	bool unit = false;
@@ -528,279 +541,285 @@ void Preprocessor<T_num>::MergeAdjEquivs() {
 template<class T_num>
 bool Preprocessor<T_num>::EliminateDefSimplicial() {
 	g_timer.start();
-	bool found = false;
+	bool found = true;
 	size_t cur_width = vars + 1;
 	std::vector<std::vector<int>> bags;
 	std::vector<int> last;
 	std::vector<uint16_t> ctr_to_bag;
-	Graph primal(vars, clauses);
-	sspp::TreeDecomposition * tdecomp = sspp::decomp::Treedecomp(primal, 10, "/tmp/");
-	bags = tdecomp->Bags();
-	Graph graph(vars, clauses);
-	last.clear();
-	last.resize(vars + 1);
-	assert(bags.size() == tdecomp->nbags() + 1);
-	// stack for storing the tuple of (parent, node, neighbors idx)
-	std::vector<std::tuple<int, int, int>> stack;
-	std::vector<std::vector<int>> neighbors;
-	neighbors.push_back({});
-	for(size_t i = 1; i <= tdecomp->nbags(); i++) {
-		neighbors.push_back(tdecomp->Neighbors(i));
-	}
-	stack.push_back(make_tuple(-1, 1, 0));
-	uint16_t ctr = 0;
-	ctr_to_bag.clear();
-	ctr_to_bag.resize(tdecomp->nbags());
-	while(!stack.empty()) {
-		int parent = get<0>(stack.back());
-		int cur = get<1>(stack.back());
-		int idx = get<2>(stack.back());
-		assert(cur < neighbors.size());
-		if(idx < neighbors[cur].size() && neighbors[cur][idx] == parent) {
-			idx++;
-		}
-		if(idx < neighbors[cur].size()) {
-			stack.back() = make_tuple(parent, cur, idx + 1);
-			stack.push_back(make_tuple(cur, neighbors[cur][idx], 0));
+	while(found) {
+		found = false;
+		Graph graph(vars, clauses);
+		sspp::TreeDecomposition newtdecomp(graph, 10);
+		if(newtdecomp.Width() <= cur_width) {
+			td_initialized = true;
+			tdecomp = newtdecomp;
+			std::cerr << "Taking new td of width " << newtdecomp.width << std::endl;
 		} else {
-			ctr_to_bag[ctr] = cur;
-			for(const auto v : bags[cur]) {
-				assert(v <= vars);
-				last[v] = ctr;
-			}
-			ctr++;
-			stack.pop_back();
+			std::cerr << "Taking old td of width " << cur_width << std::endl;
 		}
-	}
-	assert(ctr == tdecomp->nbags());
-	
-	int simps = 0;
-	vector<Var> extra(vars+1);
-	vector<Var> poss(vars+1);
-	vector<Var> negs(vars+1);
-	for (const auto& clause : clauses) {
-		for(const auto& lit : clause) {
-			if(IsPos(lit)) {
-				poss[VarOf(lit)]++;
+		bags = tdecomp.Bags();
+		last.clear();
+		last.resize(vars + 1);
+		assert(bags.size() == tdecomp.nbags() + 1);
+		// stack for storing the tuple of (parent, node, neighbors idx)
+		std::vector<std::tuple<int, int, int>> stack;
+		std::vector<std::vector<int>> neighbors;
+		neighbors.push_back({});
+		for(size_t i = 1; i <= tdecomp.nbags(); i++) {
+			neighbors.push_back(std::vector<int>(tdecomp.Neighbors(i).begin(), tdecomp.Neighbors(i).end()));
+		}
+		stack.push_back(make_tuple(-1, 1, 0));
+		uint16_t ctr = 0;
+		ctr_to_bag.clear();
+		ctr_to_bag.resize(tdecomp.nbags());
+		while(!stack.empty()) {
+			int parent = get<0>(stack.back());
+			int cur = get<1>(stack.back());
+			int idx = get<2>(stack.back());
+			assert(cur < neighbors.size());
+			if(idx < neighbors[cur].size() && neighbors[cur][idx] == parent) {
+				idx++;
+			}
+			if(idx < neighbors[cur].size()) {
+				stack.back() = make_tuple(parent, cur, idx + 1);
+				stack.push_back(make_tuple(cur, neighbors[cur][idx], 0));
 			} else {
-				negs[VarOf(lit)]++;
+				ctr_to_bag[ctr] = cur;
+				for(const auto v : bags[cur]) {
+					assert(v <= vars);
+					last[v] = ctr;
+				}
+				ctr++;
+				stack.pop_back();
 			}
 		}
-	}
-	for (Var v = 1; v <= vars; v++) {
-		// TODO magic constant 4
-		if (!graph.Neighbors(v).empty() 
-			&& min(poss[v], negs[v]) <= 4
-			&& (!weighted || weights[PosLit(var_map[v])] == weights[NegLit(var_map[v])])) {
-			int min_ctr = last[v];
-			for(const auto vp : graph.Neighbors(v)) {
-				assert(vp <= vars);
-				min_ctr = std::min(min_ctr, last[vp]);
-			}
-			assert(min_ctr < bags.size());
-			assert(0 < ctr_to_bag[min_ctr] && ctr_to_bag[min_ctr] < bags.size());
-			assert(BS(bags[ctr_to_bag[min_ctr]], v));
-			std::vector<Lit> neighs = graph.Neighbors(v);
-			if(neighs.size() + 1 > bags[ctr_to_bag[min_ctr]].size()) {
-				continue;
-			}
-			std::sort(neighs.begin(), neighs.end());
-			size_t idx_1 = 0, idx_2 = 0;
-			while(idx_1 < bags[ctr_to_bag[min_ctr]].size() && idx_2 < neighs.size()) {
-				if(bags[ctr_to_bag[min_ctr]][idx_1] == neighs[idx_2]) {
-					idx_1++;
-					idx_2++;
-				} else if(bags[ctr_to_bag[min_ctr]][idx_1] < neighs[idx_2]) {
-					idx_1++;
+		assert(ctr == tdecomp.nbags());
+		
+		int simps = 0;
+		vector<Var> extra(vars+1);
+		vector<Var> poss(vars+1);
+		vector<Var> negs(vars+1);
+		for (const auto& clause : clauses) {
+			for(const auto& lit : clause) {
+				if(IsPos(lit)) {
+					poss[VarOf(lit)]++;
 				} else {
-					idx_1 = bags[ctr_to_bag[min_ctr]].size();
+					negs[VarOf(lit)]++;
 				}
-			}
-			if(idx_2 == neighs.size()) {
-				simps++;
-				extra[v] = vars + simps;
 			}
 		}
-	}
-	if (simps == 0) {
-		Tighten(true);
-		Subsume();
-		g_timer.stop();
-		return false;
-	}
-	Oracle<T_num> oracle(vars + 2*simps, {});
-	for (const auto& cls : {clauses, learned_clauses}) {
-		for (const auto& clause : cls) {
-			oracle.AddClause(clause, false);
-			bool hs = false;
-			for (Lit lit : clause) {
-				if (extra[VarOf(lit)]) {
-					hs = true;
+		for (Var v = 1; v <= vars; v++) {
+			// TODO magic constant 4
+			if (!graph.Neighbors(v).empty() 
+				&& min(poss[v], negs[v]) <= 3
+				&& (!weighted || weights[PosLit(var_map[v])] == weights[NegLit(var_map[v])])) {
+				int min_ctr = last[v];
+				for(const auto vp : graph.Neighbors(v)) {
+					assert(vp <= vars);
+					min_ctr = std::min(min_ctr, last[vp]);
+				}
+				assert(min_ctr < bags.size());
+				assert(0 < ctr_to_bag[min_ctr] && ctr_to_bag[min_ctr] < bags.size());
+				assert(BS(bags[ctr_to_bag[min_ctr]], v));
+				std::vector<Lit> neighs(graph.Neighbors(v).begin(), graph.Neighbors(v).end());
+				if(neighs.size() + 1 > bags[ctr_to_bag[min_ctr]].size()) {
+					continue;
+				}
+				std::sort(neighs.begin(), neighs.end());
+				size_t idx_1 = 0, idx_2 = 0;
+				while(idx_1 < bags[ctr_to_bag[min_ctr]].size() && idx_2 < neighs.size()) {
+					if(bags[ctr_to_bag[min_ctr]][idx_1] == neighs[idx_2]) {
+						idx_1++;
+						idx_2++;
+					} else if(bags[ctr_to_bag[min_ctr]][idx_1] < neighs[idx_2]) {
+						idx_1++;
+					} else {
+						idx_1 = bags[ctr_to_bag[min_ctr]].size();
+					}
+				}
+				if(idx_2 == neighs.size()) {
+					simps++;
+					extra[v] = vars + simps;
 				}
 			}
-			if (hs) {
-				vector<Lit> ac;
+		}
+		if (simps == 0) {
+			Tighten(true);
+			Subsume();
+			g_timer.stop();
+			return false;
+		}
+		Oracle<T_num> oracle(vars + 2*simps, {});
+		for (const auto& cls : {clauses, learned_clauses}) {
+			for (const auto& clause : cls) {
+				oracle.AddClause(clause, false);
+				bool hs = false;
 				for (Lit lit : clause) {
 					if (extra[VarOf(lit)]) {
-						ac.push_back(MkLit(extra[VarOf(lit)], IsPos(lit)));
-					} else {
-						ac.push_back(lit);
+						hs = true;
 					}
 				}
-				SortAndDedup(ac);
-				oracle.AddClause(ac, false);
-			}
-		}
-	}
-	for (Var v = 1; v <= vars; v++) {
-		if (extra[v]) {
-			oracle.AddClause({PosLit(v), NegLit(extra[v]), NegLit(extra[v]+simps)}, false);
-			oracle.AddClause({NegLit(v), PosLit(extra[v]), NegLit(extra[v]+simps)}, false);
-		}
-	}
-	vector<char> def(vars+1);
-	int defs = 0;
-	for (Var v = 1; v <= vars; v++) {
-		if (extra[v] && g_timer.get() < max_g_time) {
-			vector<Lit> assumps;
-			assumps.push_back(PosLit(v));
-			assumps.push_back(NegLit(extra[v]));
-			for (Var tv = 1; tv <= vars; tv++) {
-				if (extra[tv] && tv != v && !def[tv]) {
-					assumps.push_back(PosLit(extra[tv]+simps));
-				}
-			}
-			if (!oracle.Solve(assumps)) {
-				def[v] = 1;
-				defs++;
-				found = true;
-			}
-		}
-	}
-	for (Var v = 1; v <= vars; v++) {
-		if (def[v]) {
-			int min_ctr = last[v];
-			for(const auto vp : graph.Neighbors(v)) {
-				assert(vp <= vars);
-				min_ctr = std::min(min_ctr, last[vp]);
-			}
-			assert(min_ctr < bags.size());
-			assert(0 < ctr_to_bag[min_ctr] && ctr_to_bag[min_ctr] < bags.size());
-			assert(BS(bags[ctr_to_bag[min_ctr]], v));
-			std::vector<Lit> neighs = graph.Neighbors(v);
-			if(neighs.size() + 1 > bags[ctr_to_bag[min_ctr]].size()) {
-				def[v] = false;
-				defs--;
-				continue;
-			}
-			std::sort(neighs.begin(), neighs.end());
-			size_t idx_1 = 0, idx_2 = 0;
-			while(idx_1 < bags[ctr_to_bag[min_ctr]].size() && idx_2 < neighs.size()) {
-				if(bags[ctr_to_bag[min_ctr]][idx_1] == neighs[idx_2]) {
-					idx_1++;
-					idx_2++;
-				} else if(bags[ctr_to_bag[min_ctr]][idx_1] < neighs[idx_2]) {
-					idx_1++;
-				} else {
-					idx_1 = bags[ctr_to_bag[min_ctr]].size();
-				}
-			}
-			if(idx_2 != neighs.size()) {
-				def[v] = false;
-				defs--;
-				continue;
-			}
-			for(auto n1 : neighs) {
-				for(auto n2 : neighs) {
-					if(n1 < n2) {
-						graph.AddEdge(n1, n2);
-					}
-				}
-			}
-			while(!graph.Neighbors(v).empty()) {
-				graph.RemoveEdge(v, graph.Neighbors(v).back());
-			}
-			vector<vector<Lit>> pos;
-			vector<vector<Lit>> neg;
-			for (int i = 0; i < (int)clauses.size(); i++) {
-				for (int j = 0; j < (int)clauses[i].size(); j++) {
-					if (VarOf(clauses[i][j]) == v) {
-						bool ph = IsPos(clauses[i][j]);
-						ShiftDel(clauses[i], j);
-						assert(IsClause(clauses[i]));
-						if (ph) {
-							pos.push_back(clauses[i]);
+				if (hs) {
+					vector<Lit> ac;
+					for (Lit lit : clause) {
+						if (extra[VarOf(lit)]) {
+							ac.push_back(MkLit(extra[VarOf(lit)], IsPos(lit)));
 						} else {
-							neg.push_back(clauses[i]);
+							ac.push_back(lit);
 						}
-						SwapDel(clauses, i);
-						i--;
-						break;
 					}
+					SortAndDedup(ac);
+					oracle.AddClause(ac, false);
 				}
 			}
-			assert(min(pos.size(), neg.size()) >= 1);
-			for (const auto& c1 : pos) {
-				for (const auto& c2 : neg) {
-					vector<Lit> res;
-					bool taut = false;
-					int j = 0;
-					for (int i = 0; i < (int)c1.size(); i++) {
-						while (j < (int)c2.size() && VarOf(c2[j]) < VarOf(c1[i])) {
+		}
+		for (Var v = 1; v <= vars; v++) {
+			if (extra[v]) {
+				oracle.AddClause({PosLit(v), NegLit(extra[v]), NegLit(extra[v]+simps)}, false);
+				oracle.AddClause({NegLit(v), PosLit(extra[v]), NegLit(extra[v]+simps)}, false);
+			}
+		}
+		vector<char> def(vars+1);
+		int defs = 0;
+		for (Var v = 1; v <= vars; v++) {
+			if (extra[v] && g_timer.get() < max_g_time) {
+				vector<Lit> assumps;
+				assumps.push_back(PosLit(v));
+				assumps.push_back(NegLit(extra[v]));
+				for (Var tv = 1; tv <= vars; tv++) {
+					if (extra[tv] && tv != v && !def[tv]) {
+						assumps.push_back(PosLit(extra[tv]+simps));
+					}
+				}
+				if (!oracle.Solve(assumps)) {
+					def[v] = 1;
+					defs++;
+					found = true;
+				}
+			}
+		}
+		for (Var v = 1; v <= vars; v++) {
+			if (def[v]) {
+				int min_ctr = last[v];
+				for(const auto vp : graph.Neighbors(v)) {
+					assert(vp <= vars);
+					min_ctr = std::min(min_ctr, last[vp]);
+				}
+				assert(min_ctr < bags.size());
+				assert(0 < ctr_to_bag[min_ctr] && ctr_to_bag[min_ctr] < bags.size());
+				assert(BS(bags[ctr_to_bag[min_ctr]], v));
+				std::vector<Lit> neighs(graph.Neighbors(v).begin(), graph.Neighbors(v).end());
+				if(neighs.size() + 1 > bags[ctr_to_bag[min_ctr]].size()) {
+					def[v] = false;
+					defs--;
+					continue;
+				}
+				std::sort(neighs.begin(), neighs.end());
+				size_t idx_1 = 0, idx_2 = 0;
+				while(idx_1 < bags[ctr_to_bag[min_ctr]].size() && idx_2 < neighs.size()) {
+					if(bags[ctr_to_bag[min_ctr]][idx_1] == neighs[idx_2]) {
+						idx_1++;
+						idx_2++;
+					} else if(bags[ctr_to_bag[min_ctr]][idx_1] < neighs[idx_2]) {
+						idx_1++;
+					} else {
+						idx_1 = bags[ctr_to_bag[min_ctr]].size();
+					}
+				}
+				if(idx_2 != neighs.size()) {
+					def[v] = false;
+					defs--;
+					continue;
+				}
+				for(auto n1 : neighs) {
+					for(auto n2 : neighs) {
+						if(n1 < n2) {
+							graph.AddEdge(n1, n2);
+						}
+					}
+				}
+				while(!neighs.empty()) {
+					graph.RemoveEdge(v, neighs.back());
+					neighs.pop_back();
+				}
+				vector<vector<Lit>> pos;
+				vector<vector<Lit>> neg;
+				for (int i = 0; i < (int)clauses.size(); i++) {
+					for (int j = 0; j < (int)clauses[i].size(); j++) {
+						if (VarOf(clauses[i][j]) == v) {
+							bool ph = IsPos(clauses[i][j]);
+							ShiftDel(clauses[i], j);
+							assert(IsClause(clauses[i]));
+							if (ph) {
+								pos.push_back(clauses[i]);
+							} else {
+								neg.push_back(clauses[i]);
+							}
+							SwapDel(clauses, i);
+							i--;
+							break;
+						}
+					}
+				}
+				assert(min(pos.size(), neg.size()) >= 1);
+				for (const auto& c1 : pos) {
+					for (const auto& c2 : neg) {
+						vector<Lit> res;
+						bool taut = false;
+						int j = 0;
+						for (int i = 0; i < (int)c1.size(); i++) {
+							while (j < (int)c2.size() && VarOf(c2[j]) < VarOf(c1[i])) {
+								res.push_back(c2[j]);
+								j++;
+							}
+							if (j < (int)c2.size() && VarOf(c2[j]) == VarOf(c1[i])) {
+								if (c2[j] == c1[i]) {
+									res.push_back(c1[i]);
+									j++;
+								} else {
+									taut = true;
+									break;
+								}
+							} else {
+								res.push_back(c1[i]);
+							}
+						}
+						while (j < (int)c2.size() && !taut) {
 							res.push_back(c2[j]);
 							j++;
 						}
-						if (j < (int)c2.size() && VarOf(c2[j]) == VarOf(c1[i])) {
-							if (c2[j] == c1[i]) {
-								res.push_back(c1[i]);
-								j++;
-							} else {
-								taut = true;
-								break;
-							}
-						} else {
-							res.push_back(c1[i]);
+						if (!taut) {
+							assert(IsClause(res));
+							clauses.push_back(res);
 						}
 					}
-					while (j < (int)c2.size() && !taut) {
-						res.push_back(c2[j]);
-						j++;
-					}
-					if (!taut) {
-						assert(IsClause(res));
-						clauses.push_back(res);
-					}
+				}
+				clauses.push_back({PosLit(v)});
+			}
+		}
+		for (int i = 0; i < (int)learned_clauses.size(); i++) {
+			bool fo = false;
+			for (Lit lit : learned_clauses[i]) {
+				if (def[VarOf(lit)]) {
+					fo = true;
+					break;
 				}
 			}
-			clauses.push_back({PosLit(v)});
-		}
-	}
-	for (int i = 0; i < (int)learned_clauses.size(); i++) {
-		bool fo = false;
-		for (Lit lit : learned_clauses[i]) {
-			if (def[VarOf(lit)]) {
-				fo = true;
-				break;
+			if (fo) {
+				SwapDel(learned_clauses, i);
+				i--;
 			}
 		}
-		if (fo) {
-			SwapDel(learned_clauses, i);
-			i--;
+		Tighten(true);		
+		cur_width = 0;
+		for(auto bag : bags) {
+			if(bag.size() > 0) {
+				cur_width = std::max(cur_width, bag.size() - 1);
+			}
 		}
+		Subsume();
 	}
-	Tighten(true);		
-	cur_width = 0;
-	for(auto bag : bags) {
-		if(bag.size() > 0) {
-			cur_width = std::max(cur_width, bag.size() - 1);
-		}
-	}
-	Subsume();
-	if(found) {
-		return EliminateDefSimplicial();
-	} else {
-		return false;
-	}
+	return true;
 }
 
 template<class T_num>

@@ -13,6 +13,7 @@
 #include "containers.h"
 #include "preprocessor/instance.hpp"
 #include "preprocessor/graph.hpp"
+#include "preprocessor/treedecomposition.hpp"
 
 #include <assert.h>
 

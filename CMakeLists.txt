@@ -29,8 +29,7 @@ add_subdirectory(flowcutter)
 SET(SOURCES 
 	src/preprocessor/graph.cpp 
 	src/preprocessor/subsumer.cpp
-	src/preprocessor/treewidth.cpp
-	src/preprocessor/twpp.cpp
+	src/preprocessor/treedecomposition.cpp
 	src/decomposition.cpp
 	src/clhash/clhash.c
 )
