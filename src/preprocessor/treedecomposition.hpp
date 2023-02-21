@@ -8,6 +8,7 @@ namespace sspp {
 class TreeDecomposition {
  public:
     TreeDecomposition() : bs(0), n(0), width(-1) {};
+    TreeDecomposition(size_t n);
  	TreeDecomposition(const Graph& graph, double time);
     TreeDecomposition(const TreeDecomposition& other) : bs(other.bs), n(other.n), width(other.width), tree(other.tree), bags(other.bags) {};
     TreeDecomposition& operator=(const TreeDecomposition& other);

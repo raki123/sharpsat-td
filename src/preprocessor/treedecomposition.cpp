@@ -24,6 +24,14 @@
 
 namespace sspp {
 
+
+TreeDecomposition::TreeDecomposition(size_t n) : n(n), bs(1), width(n-1), tree(2), bags({{},{}}) {
+    bags[1].resize(n);
+    for(size_t i = 1; i <= n; i++) {
+        bags[1].push_back(i);
+    }
+}
+
 TreeDecomposition::TreeDecomposition(const Graph& graph, double time) {
     bags.push_back({});
     n = graph.n();

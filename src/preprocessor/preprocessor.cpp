@@ -126,6 +126,8 @@ void Preprocessor<T_num>::Tighten(bool loop) {
 			new_var_map[map_to[v]] = var_map[v];
 		}
 	}
+
+	tdecomp.width = 0;
 	for(auto& bag : tdecomp.Bags()) {
 		for(size_t i = 0; i < bag.size(); i++) {
 			if(bag[i] != 0) {
@@ -139,6 +141,7 @@ void Preprocessor<T_num>::Tighten(bool loop) {
 			}
 		}
 		std::sort(bag.begin(), bag.end());
+		tdecomp.width = std::max(tdecomp.width, (int)bag.size() - 1);
 	}
 	tdecomp.n = nvars + 1;
 	var_map = new_var_map;
@@ -171,6 +174,7 @@ template<class T_num>
 Instance<T_num> Preprocessor<T_num>::Preprocess(Instance<T_num> inst, const string& techniques) {
 	weighted = inst.weighted;
 	weights = inst.weights;
+	tdecomp = sspp::TreeDecomposition(inst.vars);
 	return Preprocess(inst.vars, inst.clauses, techniques);
 }
 
@@ -542,7 +546,6 @@ template<class T_num>
 bool Preprocessor<T_num>::EliminateDefSimplicial() {
 	g_timer.start();
 	bool found = true;
-	size_t cur_width = vars + 1;
 	std::vector<std::vector<int>> bags;
 	std::vector<int> last;
 	std::vector<uint16_t> ctr_to_bag;
@@ -550,12 +553,12 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 		found = false;
 		Graph graph(vars, clauses);
 		sspp::TreeDecomposition newtdecomp(graph, 10);
-		if(newtdecomp.Width() <= cur_width) {
+		if(newtdecomp.Width() < tdecomp.Width()) {
 			td_initialized = true;
 			tdecomp = newtdecomp;
 			std::cerr << "Taking new td of width " << newtdecomp.width << std::endl;
 		} else {
-			std::cerr << "Taking old td of width " << cur_width << std::endl;
+			std::cerr << "Taking old td of width " << tdecomp.width << std::endl;	
 		}
 		bags = tdecomp.Bags();
 		last.clear();
@@ -830,12 +833,6 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 			}
 		}
 		Tighten(true);		
-		cur_width = 0;
-		for(auto bag : bags) {
-			if(bag.size() > 0) {
-				cur_width = std::max(cur_width, bag.size() - 1);
-			}
-		}
 		Subsume();
 	}
 	return true;
