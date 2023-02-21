@@ -600,22 +600,23 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 		
 		int simps = 0;
 		vector<Var> extra(vars+1);
-		vector<Var> poss(vars+1);
-		vector<Var> negs(vars+1);
-		for (const auto& clause : clauses) {
-			for(const auto& lit : clause) {
+		vector<vector<size_t>> poss(vars+1);
+		vector<vector<size_t>> negs(vars+1);
+		for (size_t i = 0; i < clauses.size(); i++) {
+			for(const auto lit : clauses[i]) {
 				if(IsPos(lit)) {
-					poss[VarOf(lit)]++;
+					poss[VarOf(lit)].push_back(i);
 				} else {
-					negs[VarOf(lit)]++;
+					negs[VarOf(lit)].push_back(i);
 				}
 			}
 		}
 		for (Var v = 1; v <= vars; v++) {
 			// TODO magic constant 4
 			if (!graph.Neighbors(v).empty() 
-				&& min(poss[v], negs[v]) <= 3
+				&& min(poss[v].size(), negs[v].size()) <= 10
 				&& (!weighted || weights[PosLit(var_map[v])] == weights[NegLit(var_map[v])])) {
+				// first check if all the resolved clauses would be contained in a bag of the tree decomposition
 				int min_ctr = last[v];
 				for(const auto vp : graph.Neighbors(v)) {
 					assert(vp <= vars);
@@ -640,7 +641,41 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 						idx_1 = bags[ctr_to_bag[min_ctr]].size();
 					}
 				}
-				if(idx_2 == neighs.size()) {
+				if(idx_2 != neighs.size()) { 
+					continue;
+				}
+				// now check how many non-tautologic clauses we would get 
+				assert(min(poss[v].size(), negs[v].size()) >= 1);
+				size_t nr_resolvents = 0;
+				for (const auto i1 : poss[v]) {
+					for (const auto i2 : negs[v]) {
+						bool taut = false;
+						int j = 0;
+						for (int i = 0; i < (int)clauses[i1].size(); i++) {
+							while (j < (int)clauses[i2].size() && VarOf(clauses[i2][j]) < VarOf(clauses[i1][i])) {
+								j++;
+							}
+							if (j < (int)clauses[i2].size() && VarOf(clauses[i2][j]) == VarOf(clauses[i1][i])) {
+								if (clauses[i2][j] == clauses[i1][i]) {
+									j++;
+								} else {
+									taut = true;
+									break;
+								}
+							}
+						}
+						if (!taut) {
+							nr_resolvents++;
+							if(nr_resolvents > poss[v].size() + negs[v].size()) {
+								break;
+							}
+						}
+					}
+					if(nr_resolvents > poss[v].size() + negs[v].size()) {
+						break;
+					}
+				}
+				if(nr_resolvents <= poss[v].size() + negs[v].size()) {
 					simps++;
 					extra[v] = vars + simps;
 				}
@@ -697,17 +732,11 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 				if (!oracle.Solve(assumps)) {
 					def[v] = 1;
 					defs++;
-					found = true;
 				}
 			}
 		}
 		for (Var v = 1; v <= vars; v++) {
 			if (def[v]) {
-				if(min(poss[v], negs[v]) > 3) {
-					def[v] = false;
-					defs--;
-					continue;
-				}
 				int min_ctr = last[v];
 				for(const auto vp : graph.Neighbors(v)) {
 					assert(vp <= vars);
@@ -739,44 +768,27 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 					defs--;
 					continue;
 				}
-				for(auto n1 : neighs) {
-					for(auto n2 : neighs) {
-						if(n1 < n2) {
-							graph.AddEdge(n1, n2);
-						}
-					}
-				}
-				while(!neighs.empty()) {
-					graph.RemoveEdge(v, neighs.back());
-					neighs.pop_back();
-				}
 				vector<vector<Lit>> pos;
 				vector<vector<Lit>> neg;
+				vector<size_t> to_remove;
 				for (int i = 0; i < (int)clauses.size(); i++) {
 					for (int j = 0; j < (int)clauses[i].size(); j++) {
 						if (VarOf(clauses[i][j]) == v) {
 							bool ph = IsPos(clauses[i][j]);
-							ShiftDel(clauses[i], j);
+							// ShiftDel(clauses[i], j);
 							assert(IsClause(clauses[i]));
 							if (ph) {
 								pos.push_back(clauses[i]);
 							} else {
 								neg.push_back(clauses[i]);
 							}
-							for(auto lit : clauses[i]) {
-								if(IsPos(lit)) {
-									poss[VarOf(lit)]--;
-								} else {
-									negs[VarOf(lit)]--;
-								}
-							}
-							SwapDel(clauses, i);
-							i--;
+							to_remove.push_back(i);
 							break;
 						}
 					}
 				}
 				assert(min(pos.size(), neg.size()) >= 1);
+				vector<vector<Lit>> resolvents;
 				for (const auto& c1 : pos) {
 					for (const auto& c2 : neg) {
 						vector<Lit> res;
@@ -791,7 +803,7 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 								if (c2[j] == c1[i]) {
 									res.push_back(c1[i]);
 									j++;
-								} else {
+								} else if(VarOf(c1[i]) != v) {
 									taut = true;
 									break;
 								}
@@ -805,18 +817,35 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 						}
 						if (!taut) {
 							assert(IsClause(res));
-							for(auto lit : res) {
-								if(IsPos(lit)) {
-									poss[VarOf(lit)]++;
-								} else {
-									negs[VarOf(lit)]++;
-								}
-							}
-							clauses.push_back(res);
+							resolvents.push_back(res);
 						}
 					}
 				}
+				if(resolvents.size() > to_remove.size()) {
+					def[v] = false;
+					defs--;
+					continue;
+				}
+				found = true;
+				std::cerr << clauses.size() << " ";
 				clauses.push_back({PosLit(v)});
+				clauses.insert(clauses.end(), resolvents.begin(), resolvents.end());
+				while(!to_remove.empty()) {
+					SwapDel(clauses, to_remove.back());
+					to_remove.pop_back();
+				}
+				std::cerr << clauses.size() << std::endl;
+				for(auto n1 : neighs) {
+					for(auto n2 : neighs) {
+						if(n1 < n2) {
+							graph.AddEdge(n1, n2);
+						}
+					}
+				}
+				while(!neighs.empty()) {
+					graph.RemoveEdge(v, neighs.back());
+					neighs.pop_back();
+				}
 			}
 		}
 		for (int i = 0; i < (int)learned_clauses.size(); i++) {
