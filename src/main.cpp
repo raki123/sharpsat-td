@@ -191,11 +191,10 @@ int main(int argc, char *argv[]) {
       input_file = argv[i];
     }
   }
-  ostringstream output;
-  if(ddnnf_fs.is_open()) {
-    dDNNFNode::out = &output;
+  if(!ddnnf_fs.is_open()) {
+    instantdDNNFNode::out = &cout;
   } else {
-    dDNNFNode::out = &cout;
+    instantdDNNFNode::out = &ddnnf_fs;
   }
 
   assert(decot > 0.0001 && decot < 10000);
@@ -329,10 +328,10 @@ int main(int argc, char *argv[]) {
     }
     return 0;
   } else if (weighted == 3) { // knowledge compilation
-    *dDNNFNode::out << "O 0 0" << endl;
-    *dDNNFNode::out << "A 0" << endl;
-    sspp::Instance<dDNNFNode> ins(input_file, true);
-    sspp::Preprocessor<dDNNFNode> ppp;
+    *instantdDNNFNode::out << "O 0 0\n";
+    *instantdDNNFNode::out << "A 0\n";
+    sspp::Instance<instantdDNNFNode> ins(input_file, true);
+    sspp::Preprocessor<instantdDNNFNode> ppp;
     ppp.SetMaxGTime(150);
     ppp.SetMaxSparsTime(120);
     ins = ppp.Preprocess(ins, "FPVEGV");
@@ -341,7 +340,7 @@ int main(int argc, char *argv[]) {
     if (ins.vars == 1 && ins.clauses.size() == 2) {
       PrintSat(false);
       PrintType(ins);
-      *dDNNFNode::out << "A 0" << endl;
+      *instantdDNNFNode::out << "A 0\n";
     } else if (ins.vars == 0) {
       PrintSat(true);
       PrintType(ins);
@@ -352,20 +351,16 @@ int main(int argc, char *argv[]) {
         tdecomp = sspp::TreeDecomposition(primal, decot);
       }
       cout<<"c o Now solving. "<<glob_timer.get()<<endl;
-      Solver<dDNNFNode> theSolver(gen);
+      Solver<instantdDNNFNode> theSolver(gen);
       theSolver.config() = config_;
       if (max_cache > 0) {
         theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
       }
-      dDNNFNode ans1 = theSolver.solve(ins, tdecomp);
+      instantdDNNFNode ans1 = theSolver.solve(ins, tdecomp);
       ans1 * ins.weight_factor;
     }
-    if(ddnnf_fs.is_open()) {
-      ddnnf_fs << "nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " << ins.vars << endl;
-      ddnnf_fs << output.str();
-      ddnnf_fs.close();
-    }
     cout<<"c o Solved. "<<glob_timer.get()<<endl;
+    cout<<"c o d-DNNF size: " << instantdDNNFNode::nodes << " nodes, " << instantdDNNFNode::edges << " edges, " <<  ins.vars << " variables" << endl;
     return 0;
   } else if (weighted == 4 || weighted == 5) { // multiple weighted queries
     assert((weighted == 4 && MDouble::N != 0) || (weighted == 5 && Mmpr::N != 0));
