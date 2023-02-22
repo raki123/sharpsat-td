@@ -355,11 +355,11 @@ int main(int argc, char *argv[]) {
       ans1 * ins.weight_factor;
       ddnnf_fs << "nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " << ins.vars;
       for(auto node : dDNNFNode::buffer) {
-        if(node & dDNNFNode::AND != 0 && node & dDNNFNode::OR != 0) {
+        if(node == dDNNFNode::LIT) {
           ddnnf_fs << "\nL ";
-        } else if(node & dDNNFNode::AND != 0) {
+        } else if(node == dDNNFNode::AND) {
           ddnnf_fs << "\nA ";
-        } else if(node & dDNNFNode::OR != 0) {
+        } else if(node == dDNNFNode::OR) {
           ddnnf_fs << "\nO ";
         } else {
           ddnnf_fs << node << " ";

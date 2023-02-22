@@ -185,10 +185,10 @@ struct dDNNFNode {
  public:
  static unsigned long long nodes;
  static unsigned long long edges;
- static vector<uint64_t> buffer;
- static const uint64_t AND;
- static const uint64_t OR;
- static const uint64_t LIT;
+ static vector<int64_t> buffer;
+ static const int64_t AND;
+ static const int64_t OR;
+ static const int64_t LIT;
   dDNNFNode() {
     id = 0;
   }
@@ -273,7 +273,7 @@ struct dDNNFNode {
   }
   static dDNNFNode FromString(string s) {
     buffer.push_back(LIT);
-    buffer.push_back(stoull(s.c_str()));
+    buffer.push_back(stoll(s.c_str()));
     dDNNFNode ret;
     ret.id = nodes++;
     return ret;
@@ -283,10 +283,10 @@ struct dDNNFNode {
 
 unsigned long long dDNNFNode::nodes = 2;
 unsigned long long dDNNFNode::edges = 0;
-vector<uint64_t> dDNNFNode::buffer = { dDNNFNode::OR, 0, 0, dDNNFNode::AND, 0 };
-const uint64_t dDNNFNode::AND = (uint64_t)1 << 63;
-const uint64_t dDNNFNode::OR = (uint64_t)1 << 62;
-const uint64_t dDNNFNode::LIT = AND | OR;
+const int64_t dDNNFNode::AND = (int64_t)1 << 62;
+const int64_t dDNNFNode::OR = (int64_t)1 << 61;
+const int64_t dDNNFNode::LIT = dDNNFNode::AND | dDNNFNode::OR;
+vector<int64_t> dDNNFNode::buffer = { dDNNFNode::OR, 0, 0, dDNNFNode::AND, 0 };
 
 struct Mmpr {
  public:
