@@ -827,14 +827,12 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 					continue;
 				}
 				found = true;
-				std::cerr << clauses.size() << " ";
 				clauses.push_back({PosLit(v)});
 				clauses.insert(clauses.end(), resolvents.begin(), resolvents.end());
 				while(!to_remove.empty()) {
 					SwapDel(clauses, to_remove.back());
 					to_remove.pop_back();
 				}
-				std::cerr << clauses.size() << std::endl;
 				for(auto n1 : neighs) {
 					for(auto n2 : neighs) {
 						if(n1 < n2) {
