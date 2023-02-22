@@ -159,16 +159,36 @@ inline void StackLevel<dDNNFNode>::includeSolution(const dDNNFNode& solutions) {
       }
     }
     if(has) {
-      dDNNFNode::buffer.push_back(dDNNFNode::AND);
-      dDNNFNode::buffer.push_back(nr_relevant + 1);
-      dDNNFNode::buffer.push_back(solutions.id);
-      for(auto it : dec_weights) {
-        if(it.second.id != 1) {
-          dDNNFNode::buffer.push_back(it.second.id);
+      if(nr_relevant > 0 && solutions.id != 1) {
+        dDNNFNode::buffer.push_back(dDNNFNode::AND | nr_relevant + 1);
+        dDNNFNode::buffer.push_back(solutions.id);
+        for(auto it : dec_weights) {
+          if(it.second.id != 1) {
+            dDNNFNode::buffer.push_back(it.second.id);
+          }
         }
+        dDNNFNode::edges += 1 + nr_relevant;
+        branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
+      } else if(nr_relevant > 1) {
+        dDNNFNode::buffer.push_back(dDNNFNode::AND | nr_relevant);
+        for(auto it : dec_weights) {
+          if(it.second.id != 1) {
+            dDNNFNode::buffer.push_back(it.second.id);
+          }
+        }
+        dDNNFNode::edges += nr_relevant;
+        branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
+      } else if(nr_relevant == 1) {
+        for(auto it : dec_weights) {
+          if(it.second.id != 1) {
+            branch_model_count_[active_branch_].id = it.second.id;
+          }
+        }
+      } else if(solutions.id != 1) {
+        branch_model_count_[active_branch_].id = solutions.id;
+      } else {
+        branch_model_count_[active_branch_].id = 1;
       }
-      dDNNFNode::edges += 1 + nr_relevant;
-      branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
     }
   }
   else {
@@ -195,16 +215,20 @@ inline void StackLevel<instantdDNNFNode>::includeSolution(const instantdDNNFNode
       }
     }
     if(has) {
-      *instantdDNNFNode::out << "A " << nr_relevant + 1 << " " << solutions.id;
+      if(nr_relevant > 0) {
+        *instantdDNNFNode::out << "A " << nr_relevant + 1 << " " << solutions.id;
 
-      for(auto it : dec_weights) {
-        if(it.second.id != 1) {
-          *instantdDNNFNode::out << " " << it.second.id;
+        for(auto it : dec_weights) {
+          if(it.second.id != 1) {
+            *instantdDNNFNode::out << " " << it.second.id;
+          }
         }
+        *instantdDNNFNode::out << endl;
+        instantdDNNFNode::edges += 1 + nr_relevant;
+        branch_model_count_[active_branch_].id = instantdDNNFNode::nodes++;
+      } else {
+        branch_model_count_[active_branch_].id = solutions.id;
       }
-      *instantdDNNFNode::out << endl;
-      instantdDNNFNode::edges += 1 + nr_relevant;
-      branch_model_count_[active_branch_].id = instantdDNNFNode::nodes++;
     }
   }
   else {

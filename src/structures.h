@@ -189,6 +189,7 @@ struct dDNNFNode {
  static const int64_t AND;
  static const int64_t OR;
  static const int64_t LIT;
+ static const int64_t NEGLIT;
   dDNNFNode() {
     id = 0;
   }
@@ -215,8 +216,7 @@ struct dDNNFNode {
     if(IsAlgZero() || other.id == 1) {
       return *this;
     }
-    buffer.push_back(AND);
-    buffer.push_back(2);
+    buffer.push_back(AND | 2);
     buffer.push_back(other.id);
     buffer.push_back(id);
     dDNNFNode ret;
@@ -231,9 +231,7 @@ struct dDNNFNode {
     if(other.IsAlgZero() || id == 1) {
       return *this;
     }
-    buffer.push_back(OR);
-    buffer.push_back(0);
-    buffer.push_back(2);
+    buffer.push_back(OR | 2);
     buffer.push_back(other.id);
     buffer.push_back(id);
     dDNNFNode ret;
@@ -249,8 +247,7 @@ struct dDNNFNode {
     if(IsAlgZero() || other.id == 1) {
       return *this;
     }
-    buffer.push_back(AND);
-    buffer.push_back(2);
+    buffer.push_back(AND | 2);
     buffer.push_back(other.id);
     buffer.push_back(id);
     edges += 2;
@@ -272,8 +269,12 @@ struct dDNNFNode {
     return ret;
   }
   static dDNNFNode FromString(string s) {
-    buffer.push_back(LIT);
-    buffer.push_back(stoll(s.c_str()));
+    int64_t lit = stoll(s.c_str());
+    if(lit > 0) {
+      buffer.push_back(LIT | lit);
+    } else {
+      buffer.push_back(NEGLIT | abs(lit));
+    }
     dDNNFNode ret;
     ret.id = nodes++;
     return ret;
@@ -286,7 +287,8 @@ unsigned long long dDNNFNode::edges = 0;
 const int64_t dDNNFNode::AND = (int64_t)1 << 62;
 const int64_t dDNNFNode::OR = (int64_t)1 << 61;
 const int64_t dDNNFNode::LIT = dDNNFNode::AND | dDNNFNode::OR;
-vector<int64_t> dDNNFNode::buffer = { dDNNFNode::OR, 0, 0, dDNNFNode::AND, 0 };
+const int64_t dDNNFNode::NEGLIT = dDNNFNode::AND | dDNNFNode::OR | ((int64_t) 1 << 63);
+vector<int64_t> dDNNFNode::buffer = { dDNNFNode::OR, dDNNFNode::AND };
 
 struct Mmpr {
  public:
