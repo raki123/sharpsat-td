@@ -121,7 +121,7 @@ struct instantdDNNFNode {
     if(IsAlgZero() || other.id == 1) {
       return *this;
     }
-    *out << "A 2 " << other.id << " " << id << endl;
+    *out << "A 2 " << other.id << " " << id << "\n";
     instantdDNNFNode ret;
     edges += 2;
     ret.id = nodes++;
@@ -134,7 +134,7 @@ struct instantdDNNFNode {
     if(other.IsAlgZero() || id == 1) {
       return *this;
     }
-    *out << "O 0 2 " << other.id << " " << id << endl;
+    *out << "O 0 2 " << other.id << " " << id << "\n";
     instantdDNNFNode ret;
     edges += 2;
     ret.id = nodes++;
@@ -148,7 +148,7 @@ struct instantdDNNFNode {
     if(IsAlgZero() || other.id == 1) {
       return *this;
     }
-    *out << "A 2 " << other.id << " " << id << endl;
+    *out << "A 2 " << other.id << " " << id << "\n";
     edges += 2;
     id = nodes++;
     return *this;
@@ -168,7 +168,7 @@ struct instantdDNNFNode {
     return ret;
   }
   static instantdDNNFNode FromString(string s) {
-    *out << "L " << s << endl;
+    *out << "L " << s << "\n";
     instantdDNNFNode ret;
     ret.id = nodes++;
     return ret;

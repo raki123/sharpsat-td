@@ -215,19 +215,36 @@ inline void StackLevel<instantdDNNFNode>::includeSolution(const instantdDNNFNode
       }
     }
     if(has) {
-      if(nr_relevant > 0) {
+      if(nr_relevant > 0 && solutions.id != 1) {
         *instantdDNNFNode::out << "A " << nr_relevant + 1 << " " << solutions.id;
-
         for(auto it : dec_weights) {
           if(it.second.id != 1) {
             *instantdDNNFNode::out << " " << it.second.id;
           }
         }
-        *instantdDNNFNode::out << endl;
+        *instantdDNNFNode::out << "\n";
         instantdDNNFNode::edges += 1 + nr_relevant;
         branch_model_count_[active_branch_].id = instantdDNNFNode::nodes++;
-      } else {
+      } else if(nr_relevant > 1) {
+        *instantdDNNFNode::out << "A " << nr_relevant;
+        for(auto it : dec_weights) {
+          if(it.second.id != 1) {
+            *instantdDNNFNode::out << " " << it.second.id;
+          }
+        }
+        *instantdDNNFNode::out << "\n";
+        instantdDNNFNode::edges += nr_relevant;
+        branch_model_count_[active_branch_].id = instantdDNNFNode::nodes++;
+      } else if(nr_relevant == 1) {
+        for(auto it : dec_weights) {
+          if(it.second.id != 1) {
+            branch_model_count_[active_branch_].id = it.second.id;
+          }
+        }
+      } else if(solutions.id != 1) {
         branch_model_count_[active_branch_].id = solutions.id;
+      } else {
+        branch_model_count_[active_branch_].id = 1;
       }
     }
   }
