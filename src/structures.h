@@ -90,11 +90,105 @@ struct SDouble {
   bool has = false;
 };
 
-struct dDNNFNode {
+struct instantdDNNFNode {
  public:
  static unsigned long long nodes;
  static unsigned long long edges;
  static ostream* out;
+  instantdDNNFNode() {
+    id = 0;
+  }
+  instantdDNNFNode(const instantdDNNFNode& other) {
+    id = other.id;
+  }
+  instantdDNNFNode& operator=(const instantdDNNFNode& other) {
+    id = other.id;
+    return *this;
+  }
+
+  bool operator==(const instantdDNNFNode& other) const {
+    return id == other.id;
+  }
+
+  bool IsAlgZero() const {
+    return id == 0;
+  }
+
+  instantdDNNFNode operator*(instantdDNNFNode other) const {
+    if(other.IsAlgZero() || id == 1) {
+      return other;
+    }
+    if(IsAlgZero() || other.id == 1) {
+      return *this;
+    }
+    *out << "A 2 " << other.id << " " << id << endl;
+    instantdDNNFNode ret;
+    edges += 2;
+    ret.id = nodes++;
+    return ret;
+  }
+  instantdDNNFNode operator+(instantdDNNFNode other) const {    
+    if(IsAlgZero() || other.id == 1) {
+      return other;
+    }
+    if(other.IsAlgZero() || id == 1) {
+      return *this;
+    }
+    *out << "O 0 2 " << other.id << " " << id << endl;
+    instantdDNNFNode ret;
+    edges += 2;
+    ret.id = nodes++;
+    return ret;
+  }
+  instantdDNNFNode& operator*=(const instantdDNNFNode& other) {
+    if(other.IsAlgZero() || id == 1) {
+      id = other.id;  
+      return *this;
+    }
+    if(IsAlgZero() || other.id == 1) {
+      return *this;
+    }
+    *out << "A 2 " << other.id << " " << id << endl;
+    edges += 2;
+    id = nodes++;
+    return *this;
+  }
+
+  size_t InternalSize() const {
+    return 0;
+  }
+  static instantdDNNFNode Zero() {
+    instantdDNNFNode ret;
+    ret.id = 0;
+    return ret;
+  }
+  static instantdDNNFNode One() {
+    instantdDNNFNode ret;
+    ret.id = 1;
+    return ret;
+  }
+  static instantdDNNFNode FromString(string s) {
+    *out << "L " << s << endl;
+    instantdDNNFNode ret;
+    ret.id = nodes++;
+    return ret;
+  }
+  unsigned long long id;
+};
+
+unsigned long long instantdDNNFNode::nodes = 2;
+unsigned long long instantdDNNFNode::edges = 0;
+ostream* instantdDNNFNode::out;
+
+
+struct dDNNFNode {
+ public:
+ static unsigned long long nodes;
+ static unsigned long long edges;
+ static vector<uint64_t> buffer;
+ static const uint64_t AND;
+ static const uint64_t OR;
+ static const uint64_t LIT;
   dDNNFNode() {
     id = 0;
   }
@@ -121,7 +215,10 @@ struct dDNNFNode {
     if(IsAlgZero() || other.id == 1) {
       return *this;
     }
-    *out << "A 2 " << other.id << " " << id << endl;
+    buffer.push_back(AND);
+    buffer.push_back(2);
+    buffer.push_back(other.id);
+    buffer.push_back(id);
     dDNNFNode ret;
     edges += 2;
     ret.id = nodes++;
@@ -134,7 +231,11 @@ struct dDNNFNode {
     if(other.IsAlgZero() || id == 1) {
       return *this;
     }
-    *out << "O 0 2 " << other.id << " " << id << endl;
+    buffer.push_back(OR);
+    buffer.push_back(0);
+    buffer.push_back(2);
+    buffer.push_back(other.id);
+    buffer.push_back(id);
     dDNNFNode ret;
     edges += 2;
     ret.id = nodes++;
@@ -148,7 +249,10 @@ struct dDNNFNode {
     if(IsAlgZero() || other.id == 1) {
       return *this;
     }
-    *out << "A 2 " << other.id << " " << id << endl;
+    buffer.push_back(AND);
+    buffer.push_back(2);
+    buffer.push_back(other.id);
+    buffer.push_back(id);
     edges += 2;
     id = nodes++;
     return *this;
@@ -168,7 +272,8 @@ struct dDNNFNode {
     return ret;
   }
   static dDNNFNode FromString(string s) {
-    *out << "L " << s << endl;
+    buffer.push_back(LIT);
+    buffer.push_back(stoull(s.c_str()));
     dDNNFNode ret;
     ret.id = nodes++;
     return ret;
@@ -178,7 +283,10 @@ struct dDNNFNode {
 
 unsigned long long dDNNFNode::nodes = 2;
 unsigned long long dDNNFNode::edges = 0;
-ostream* dDNNFNode::out;
+vector<uint64_t> dDNNFNode::buffer = { dDNNFNode::OR, 0, 0, dDNNFNode::AND, 0 };
+const uint64_t dDNNFNode::AND = (uint64_t)1 << 63;
+const uint64_t dDNNFNode::OR = (uint64_t)1 << 62;
+const uint64_t dDNNFNode::LIT = AND | OR;
 
 struct Mmpr {
  public:

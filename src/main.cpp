@@ -199,10 +199,8 @@ int main(int argc, char *argv[]) {
     }
   }
   ostringstream output;
-  if(ddnnf_fs.is_open()) {
-    dDNNFNode::out = &output;
-  } else {
-    dDNNFNode::out = &cout;
+  if(!ddnnf_fs.is_open()) {
+    instantdDNNFNode::out = &cout;
   }
 
   assert(!tmp_dir.empty());
@@ -328,8 +326,7 @@ int main(int argc, char *argv[]) {
     }
     return 0;
   } else if (weighted == 3) { // knowledge compilation
-    *dDNNFNode::out << "O 0 0" << endl;
-    *dDNNFNode::out << "A 0" << endl;
+    if(ddnnf_fs.is_open()) { // we want to print to a file
     sspp::Instance<dDNNFNode> ins(input_file, true);
     sspp::Preprocessor<dDNNFNode> ppp;
     ppp.SetMaxGTime(150);
@@ -340,7 +337,8 @@ int main(int argc, char *argv[]) {
     if (ins.vars == 1 && ins.clauses.size() == 2) {
       PrintSat(false);
       PrintType(ins);
-      *dDNNFNode::out << "A 0" << endl;
+      ddnnf_fs << "nnf " << 1 << " " << 0 << " " << ins.vars << "\n";
+      ddnnf_fs << "A 0" << "\n";
     } else if (ins.vars == 0) {
       PrintSat(true);
       PrintType(ins);
@@ -355,13 +353,53 @@ int main(int argc, char *argv[]) {
       }
       dDNNFNode ans1 = theSolver.solve(ins, tdecomp);
       ans1 * ins.weight_factor;
-    }
-    if(ddnnf_fs.is_open()) {
-      ddnnf_fs << "nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " << ins.vars << endl;
-      ddnnf_fs << output.str();
+      ddnnf_fs << "nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " << ins.vars;
+      for(auto node : dDNNFNode::buffer) {
+        if(node & dDNNFNode::AND != 0 && node & dDNNFNode::OR != 0) {
+          ddnnf_fs << "\nL ";
+        } else if(node & dDNNFNode::AND != 0) {
+          ddnnf_fs << "\nA ";
+        } else if(node & dDNNFNode::OR != 0) {
+          ddnnf_fs << "\nO ";
+        } else {
+          ddnnf_fs << node << " ";
+        }
+      }
+      ddnnf_fs << "\n";
       ddnnf_fs.close();
     }
     cout<<"c o Solved. "<<glob_timer.get()<<endl;
+    } else { // we want to print to stdout immediately
+      *instantdDNNFNode::out << "O 0 0" << endl;
+      *instantdDNNFNode::out << "A 0" << endl;
+      sspp::Instance<instantdDNNFNode> ins(input_file, true);
+      sspp::Preprocessor<instantdDNNFNode> ppp;
+      ppp.SetMaxGTime(150);
+      ppp.SetMaxSparsTime(120);
+      ins = ppp.Preprocess(ins, "FPVEGV");
+      ins.UpdClauseInfo();
+      cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
+      if (ins.vars == 1 && ins.clauses.size() == 2) {
+        PrintSat(false);
+        PrintType(ins);
+        *instantdDNNFNode::out << "A 0" << endl;
+      } else if (ins.vars == 0) {
+        PrintSat(true);
+        PrintType(ins);
+      } else {
+        sspp::Graph primal(ins.vars, ins.clauses);
+        sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+        cout<<"c o Now solving. "<<glob_timer.get()<<endl;
+        Solver<instantdDNNFNode> theSolver(gen);
+        theSolver.config() = config_;
+        if (max_cache > 0) {
+          theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
+        }
+        instantdDNNFNode ans1 = theSolver.solve(ins, tdecomp);
+        ans1 * ins.weight_factor;
+      }
+      cout<<"c o Solved. "<<glob_timer.get()<<endl;
+    }
     return 0;
   } else if (weighted == 4 || weighted == 5) { // multiple weighted queries
     assert((weighted == 4 && MDouble::N != 0) || (weighted == 5 && Mmpr::N != 0));

@@ -159,16 +159,52 @@ inline void StackLevel<dDNNFNode>::includeSolution(const dDNNFNode& solutions) {
       }
     }
     if(has) {
-      *dDNNFNode::out << "A " << nr_relevant + 1 << " " << solutions.id;
+      dDNNFNode::buffer.push_back(dDNNFNode::AND);
+      dDNNFNode::buffer.push_back(nr_relevant + 1);
+      dDNNFNode::buffer.push_back(solutions.id);
+      for(auto it : dec_weights) {
+        if(it.second.id != 1) {
+          dDNNFNode::buffer.push_back(it.second.id);
+        }
+      }
+      dDNNFNode::edges += 1 + nr_relevant;
+      branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
+    }
+  }
+  else {
+    branch_model_count_[active_branch_] *= solutions;
+  }
+}
+
+template <>
+inline void StackLevel<instantdDNNFNode>::includeSolution(const instantdDNNFNode& solutions) {
+  if (branch_found_unsat_[active_branch_]) {
+    assert(branch_model_count_[active_branch_].IsAlgZero());
+    return;
+  }
+  if (solutions.IsAlgZero()) {
+    branch_found_unsat_[active_branch_] = true;
+  }
+  if (branch_model_count_[active_branch_].IsAlgZero()) {
+    bool has = solutions.id != 0;
+    int nr_relevant = 0;
+    for(auto it : dec_weights) {
+      if(it.second.id != 1) {
+        nr_relevant++;
+        has &= (it.second.id != 0);
+      }
+    }
+    if(has) {
+      *instantdDNNFNode::out << "A " << nr_relevant + 1 << " " << solutions.id;
 
       for(auto it : dec_weights) {
         if(it.second.id != 1) {
-          *dDNNFNode::out << " " << it.second.id;
+          *instantdDNNFNode::out << " " << it.second.id;
         }
       }
-      *dDNNFNode::out << endl;
-      dDNNFNode::edges += 1 + nr_relevant;
-      branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
+      *instantdDNNFNode::out << endl;
+      instantdDNNFNode::edges += 1 + nr_relevant;
+      branch_model_count_[active_branch_].id = instantdDNNFNode::nodes++;
     }
   }
   else {
