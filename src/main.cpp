@@ -399,6 +399,7 @@ int main(int argc, char *argv[]) {
       size_t i = 0;
       bool high = true;
       uint8_t nibble;
+      cout<<"c o Solved. "<<glob_timer.get()<<endl;
       ddnnf_fs <<"nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " <<  ins.vars;
       while(i < dDNNFNode::buffer.size() - 1 || (i == dDNNFNode::buffer.size() - 1 && (high || dDNNFNode::high))) {
         if(high) {
@@ -425,7 +426,7 @@ int main(int argc, char *argv[]) {
       }
       ddnnf_fs << "\n";
       ddnnf_fs.close();
-      cout<<"c o Solved. "<<glob_timer.get()<<endl;
+      cout<<"c o Finished outputting dDNNF. "<<glob_timer.get()<<endl;
       return 0;
     }
   } else if (weighted == 4 || weighted == 5) { // multiple weighted queries
