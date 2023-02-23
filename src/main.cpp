@@ -109,6 +109,7 @@ int main(int argc, char *argv[]) {
   int weighted = 0;
   
   ofstream ddnnf_fs;
+  bool instant = false;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-WD") == 0) {
@@ -142,6 +143,8 @@ int main(int argc, char *argv[]) {
         return -1;
       }
       ddnnf_fs.open(argv[++i], ios_base::out);
+    } else if (strcmp(argv[i], "-instant") == 0) {
+      instant = true;
     } else if (strcmp(argv[i], "-tmpdir") == 0) {
       if (argc <= i + 1) {
         cout << " wrong parameters" << endl;
@@ -198,10 +201,12 @@ int main(int argc, char *argv[]) {
       input_file = argv[i];
     }
   }
-  if(!ddnnf_fs.is_open()) {
-    instantdDNNFNode::out = &cout;
-  } else {
-    instantdDNNFNode::out = &ddnnf_fs;
+  if(instant) {
+    if(!ddnnf_fs.is_open()) {
+        instantdDNNFNode::out = &cout;
+    } else {
+      instantdDNNFNode::out = &ddnnf_fs;
+    }
   }
 
   assert(!tmp_dir.empty());
@@ -327,37 +332,102 @@ int main(int argc, char *argv[]) {
     }
     return 0;
   } else if (weighted == 3) { // knowledge compilation
-    *instantdDNNFNode::out << "O 0 0\n";
-    *instantdDNNFNode::out << "A 0\n";
-    sspp::Instance<instantdDNNFNode> ins(input_file, true);
-    sspp::Preprocessor<instantdDNNFNode> ppp;
-    ppp.SetMaxGTime(150);
-    ppp.SetMaxSparsTime(120);
-    ins = ppp.Preprocess(ins, "FPVEGV");
-    ins.UpdClauseInfo();
-    cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
-    if (ins.vars == 1 && ins.clauses.size() == 2) {
-      PrintSat(false);
-      PrintType(ins);
+    if(instant) {
+      *instantdDNNFNode::out << "O 0 0\n";
       *instantdDNNFNode::out << "A 0\n";
-    } else if (ins.vars == 0) {
-      PrintSat(true);
-      PrintType(ins);
-    } else {
-      sspp::Graph primal(ins.vars, ins.clauses);
-      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
-      cout<<"c o Now solving. "<<glob_timer.get()<<endl;
-      Solver<instantdDNNFNode> theSolver(gen);
-      theSolver.config() = config_;
-      if (max_cache > 0) {
-        theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
+      sspp::Instance<instantdDNNFNode> ins(input_file, true);
+      sspp::Preprocessor<instantdDNNFNode> ppp;
+      ppp.SetMaxGTime(150);
+      ppp.SetMaxSparsTime(120);
+      ins = ppp.Preprocess(ins, "FPVEGV");
+      ins.UpdClauseInfo();
+      cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
+      if (ins.vars == 1 && ins.clauses.size() == 2) {
+        PrintSat(false);
+        PrintType(ins);
+        *instantdDNNFNode::out << "A 0\n";
+      } else if (ins.vars == 0) {
+        PrintSat(true);
+        PrintType(ins);
+      } else {
+        sspp::Graph primal(ins.vars, ins.clauses);
+        sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+        cout<<"c o Now solving. "<<glob_timer.get()<<endl;
+        Solver<instantdDNNFNode> theSolver(gen);
+        theSolver.config() = config_;
+        if (max_cache > 0) {
+          theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
+        }
+        instantdDNNFNode ans1 = theSolver.solve(ins, tdecomp);
+        ans1 * ins.weight_factor;
       }
-      instantdDNNFNode ans1 = theSolver.solve(ins, tdecomp);
-      ans1 * ins.weight_factor;
+      cout<<"c o Solved. "<<glob_timer.get()<<endl;
+      cout<<"c o d-DNNF size: " << instantdDNNFNode::nodes << " nodes, " << instantdDNNFNode::edges << " edges, " <<  ins.vars << " variables" << endl;
+      return 0;
+    } else {
+      dDNNFNode::WriteNibble(dDNNFNode::OR);
+      dDNNFNode::WriteNibble(0);
+      dDNNFNode::WriteNibble(dDNNFNode::AND);
+      dDNNFNode::WriteNibble(0);
+      sspp::Instance<dDNNFNode> ins(input_file, true);
+      sspp::Preprocessor<dDNNFNode> ppp;
+      ppp.SetMaxGTime(150);
+      ppp.SetMaxSparsTime(120);
+      ins = ppp.Preprocess(ins, "FPVEGV");
+      ins.UpdClauseInfo();
+      cout<<"c o Preprocessed. "<<glob_timer.get()<<"s Vars: "<<ins.vars<<" Clauses: "<<ins.clauses.size()<<" Free vars: "<<ppp.FreeVars()<<endl;
+      if (ins.vars == 1 && ins.clauses.size() == 2) {
+        PrintSat(false);
+        PrintType(ins);
+        dDNNFNode::WriteNibble(dDNNFNode::AND);
+        dDNNFNode::WriteNibble(0);
+      } else if (ins.vars == 0) {
+        PrintSat(true);
+        PrintType(ins);
+      } else {
+        sspp::Graph primal(ins.vars, ins.clauses);
+        sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+        cout<<"c o Now solving. "<<glob_timer.get()<<endl;
+        Solver<dDNNFNode> theSolver(gen);
+        theSolver.config() = config_;
+        if (max_cache > 0) {
+          theSolver.statistics().maximum_cache_size_bytes_ = max_cache;
+        }
+        dDNNFNode ans1 = theSolver.solve(ins, tdecomp);
+        ans1 * ins.weight_factor;
+      }
+      size_t i = 0;
+      bool high = true;
+      uint8_t nibble;
+      ddnnf_fs <<"nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " <<  ins.vars;
+      while(i < dDNNFNode::buffer.size() - 1 || (i == dDNNFNode::buffer.size() - 1 && (high || dDNNFNode::high))) {
+        if(high) {
+          nibble = dDNNFNode::buffer[i] >> 4;
+        } else {
+          nibble = dDNNFNode::buffer[i] & 15;
+          i++;
+        }
+        high = !high;
+        if(nibble == dDNNFNode::AND) {
+          ddnnf_fs << "\nA ";
+        } else if(nibble == dDNNFNode::OR) {
+          ddnnf_fs << "\nO 0 ";
+        } else if(nibble == dDNNFNode::LIT) {
+          ddnnf_fs << "\nL ";
+        } else if(nibble == dDNNFNode::NEGLIT) {
+          ddnnf_fs << "\nL -";
+        } else if(nibble == dDNNFNode::SPACE) {
+          ddnnf_fs << " ";
+        } else {
+          assert(nibble <= 9);
+          ddnnf_fs << (char)(nibble + 48);
+        }
+      }
+      ddnnf_fs << "\n";
+      ddnnf_fs.close();
+      cout<<"c o Solved. "<<glob_timer.get()<<endl;
+      return 0;
     }
-    cout<<"c o Solved. "<<glob_timer.get()<<endl;
-    cout<<"c o d-DNNF size: " << instantdDNNFNode::nodes << " nodes, " << instantdDNNFNode::edges << " edges, " <<  ins.vars << " variables" << endl;
-    return 0;
   } else if (weighted == 4 || weighted == 5) { // multiple weighted queries
     assert((weighted == 4 && MDouble::N != 0) || (weighted == 5 && Mmpr::N != 0));
     if(weighted == 4) {
