@@ -365,10 +365,16 @@ int main(int argc, char *argv[]) {
       cout<<"c o d-DNNF size: " << instantdDNNFNode::nodes << " nodes, " << instantdDNNFNode::edges << " edges, " <<  ins.vars << " variables" << endl;
       return 0;
     } else {
-      dDNNFNode::WriteNibble(dDNNFNode::OR);
-      dDNNFNode::WriteNibble(0);
-      dDNNFNode::WriteNibble(dDNNFNode::AND);
-      dDNNFNode::WriteNibble(0);
+      dDNNFNode::buffer.push_back('O');
+      dDNNFNode::buffer.push_back(' ');
+      dDNNFNode::buffer.push_back('0');
+      dDNNFNode::buffer.push_back(' ');
+      dDNNFNode::buffer.push_back('0');
+      dDNNFNode::buffer.push_back('\n');
+      dDNNFNode::buffer.push_back('A');
+      dDNNFNode::buffer.push_back(' ');
+      dDNNFNode::buffer.push_back('0');
+      dDNNFNode::buffer.push_back('\n');
       sspp::Instance<dDNNFNode> ins(input_file, true);
       sspp::Preprocessor<dDNNFNode> ppp;
       ppp.SetMaxGTime(150);
@@ -379,8 +385,10 @@ int main(int argc, char *argv[]) {
       if (ins.vars == 1 && ins.clauses.size() == 2) {
         PrintSat(false);
         PrintType(ins);
-        dDNNFNode::WriteNibble(dDNNFNode::AND);
-        dDNNFNode::WriteNibble(0);
+        dDNNFNode::buffer.push_back('A');
+        dDNNFNode::buffer.push_back(' ');
+        dDNNFNode::buffer.push_back('0');
+        dDNNFNode::buffer.push_back('\n');
       } else if (ins.vars == 0) {
         PrintSat(true);
         PrintType(ins);
@@ -400,31 +408,8 @@ int main(int argc, char *argv[]) {
       bool high = true;
       uint8_t nibble;
       cout<<"c o Solved. "<<glob_timer.get()<<endl;
-      ddnnf_fs <<"nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " <<  ins.vars;
-      while(i < dDNNFNode::buffer.size() - 1 || (i == dDNNFNode::buffer.size() - 1 && (high || dDNNFNode::high))) {
-        if(high) {
-          nibble = dDNNFNode::buffer[i] >> 4;
-        } else {
-          nibble = dDNNFNode::buffer[i] & 15;
-          i++;
-        }
-        high = !high;
-        if(nibble == dDNNFNode::AND) {
-          ddnnf_fs << "\nA ";
-        } else if(nibble == dDNNFNode::OR) {
-          ddnnf_fs << "\nO 0 ";
-        } else if(nibble == dDNNFNode::LIT) {
-          ddnnf_fs << "\nL ";
-        } else if(nibble == dDNNFNode::NEGLIT) {
-          ddnnf_fs << "\nL -";
-        } else if(nibble == dDNNFNode::SPACE) {
-          ddnnf_fs << " ";
-        } else {
-          assert(nibble <= 9);
-          ddnnf_fs << (char)(nibble + 48);
-        }
-      }
-      ddnnf_fs << "\n";
+      ddnnf_fs <<"nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " <<  ins.vars << "\n";
+      ddnnf_fs << (char *)dDNNFNode::buffer.data();
       ddnnf_fs.close();
       cout<<"c o Finished outputting dDNNF. "<<glob_timer.get()<<endl;
       return 0;

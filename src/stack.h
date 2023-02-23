@@ -160,24 +160,31 @@ inline void StackLevel<dDNNFNode>::includeSolution(const dDNNFNode& solutions) {
     }
     if(has) {
       if(nr_relevant > 0 && solutions.id != 1) {
-        dDNNFNode::WriteNibble(dDNNFNode::AND);
+        dDNNFNode::buffer.push_back('A');
+        dDNNFNode::buffer.push_back(' ');
         dDNNFNode::WriteID(nr_relevant + 1);
+        dDNNFNode::buffer.push_back(' ');
         dDNNFNode::WriteID(solutions.id);
         for(auto it : dec_weights) {
           if(it.second.id != 1) {
+            dDNNFNode::buffer.push_back(' ');
             dDNNFNode::WriteID(it.second.id);
           }
         }
+        dDNNFNode::buffer.push_back('\n');
         dDNNFNode::edges += 1 + nr_relevant;
         branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
       } else if(nr_relevant > 1) {
-        dDNNFNode::WriteNibble(dDNNFNode::AND);
+        dDNNFNode::buffer.push_back('A');
+        dDNNFNode::buffer.push_back(' ');
         dDNNFNode::WriteID(nr_relevant);
         for(auto it : dec_weights) {
           if(it.second.id != 1) {
+            dDNNFNode::buffer.push_back(' ');
             dDNNFNode::WriteID(it.second.id);
           }
         }
+        dDNNFNode::buffer.push_back('\n');
         dDNNFNode::edges += nr_relevant;
         branch_model_count_[active_branch_].id = dDNNFNode::nodes++;
       } else if(nr_relevant == 1) {
