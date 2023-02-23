@@ -92,8 +92,8 @@ struct SDouble {
 
 struct instantdDNNFNode {
  public:
- static unsigned long long nodes;
- static unsigned long long edges;
+ static uint64_t nodes;
+ static uint64_t edges;
  static ostream* out;
   instantdDNNFNode() {
     id = 0;
@@ -173,23 +173,25 @@ struct instantdDNNFNode {
     ret.id = nodes++;
     return ret;
   }
-  unsigned long long id;
+  uint64_t id;
 };
 
-unsigned long long instantdDNNFNode::nodes = 2;
-unsigned long long instantdDNNFNode::edges = 0;
+uint64_t instantdDNNFNode::nodes = 2;
+uint64_t instantdDNNFNode::edges = 0;
 ostream* instantdDNNFNode::out;
 
 
 struct dDNNFNode {
  public:
- static unsigned long long nodes;
- static unsigned long long edges;
- static vector<int64_t> buffer;
- static const int64_t AND;
- static const int64_t OR;
- static const int64_t LIT;
- static const int64_t NEGLIT;
+  static uint64_t nodes;
+  static uint64_t edges;
+  static vector<uint8_t> buffer;
+  static bool high;
+  static const uint8_t AND;
+  static const uint8_t OR;
+  static const uint8_t LIT;
+  static const uint8_t NEGLIT;
+  static const uint8_t SPACE;
   dDNNFNode() {
     id = 0;
   }
@@ -216,9 +218,11 @@ struct dDNNFNode {
     if(IsAlgZero() || other.id == 1) {
       return *this;
     }
-    buffer.push_back(AND | 2);
-    buffer.push_back(other.id);
-    buffer.push_back(id);
+    WriteNibble(AND);
+    WriteNibble(2);
+    dDNNFNode::WriteNibble(dDNNFNode::SPACE);
+    WriteID(other.id);
+    WriteID(id);
     dDNNFNode ret;
     edges += 2;
     ret.id = nodes++;
@@ -231,9 +235,12 @@ struct dDNNFNode {
     if(other.IsAlgZero() || id == 1) {
       return *this;
     }
-    buffer.push_back(OR | 2);
-    buffer.push_back(other.id);
-    buffer.push_back(id);
+
+    WriteNibble(OR);
+    WriteNibble(2);
+    dDNNFNode::WriteNibble(dDNNFNode::SPACE);
+    WriteID(other.id);
+    WriteID(id);
     dDNNFNode ret;
     edges += 2;
     ret.id = nodes++;
@@ -247,9 +254,11 @@ struct dDNNFNode {
     if(IsAlgZero() || other.id == 1) {
       return *this;
     }
-    buffer.push_back(AND | 2);
-    buffer.push_back(other.id);
-    buffer.push_back(id);
+    WriteNibble(AND);
+    WriteNibble(2);
+    WriteNibble(SPACE);
+    WriteID(other.id);
+    WriteID(id);
     edges += 2;
     id = nodes++;
     return *this;
@@ -271,24 +280,58 @@ struct dDNNFNode {
   static dDNNFNode FromString(string s) {
     int64_t lit = stoll(s.c_str());
     if(lit > 0) {
-      buffer.push_back(LIT | lit);
+      WriteNibble(LIT);
     } else {
-      buffer.push_back(NEGLIT | abs(lit));
+      WriteNibble(NEGLIT);
     }
+    WriteID(abs(lit));
     dDNNFNode ret;
     ret.id = nodes++;
     return ret;
   }
-  unsigned long long id;
+  uint64_t id;
+
+  // buffer bookkeeping
+  static void WriteNibble(uint8_t to_write);
+  static void WriteID(uint64_t to_write);
 };
 
-unsigned long long dDNNFNode::nodes = 2;
-unsigned long long dDNNFNode::edges = 0;
-const int64_t dDNNFNode::AND = (int64_t)1 << 62;
-const int64_t dDNNFNode::OR = (int64_t)1 << 61;
-const int64_t dDNNFNode::LIT = dDNNFNode::AND | dDNNFNode::OR;
-const int64_t dDNNFNode::NEGLIT = dDNNFNode::AND | dDNNFNode::OR | ((int64_t) 1 << 63);
-vector<int64_t> dDNNFNode::buffer = { dDNNFNode::OR, dDNNFNode::AND };
+uint64_t dDNNFNode::nodes = 2;
+uint64_t dDNNFNode::edges = 0;
+bool dDNNFNode::high = true;
+const uint8_t dDNNFNode::AND = 10;
+const uint8_t dDNNFNode::OR = 11;
+const uint8_t dDNNFNode::LIT = 12;
+const uint8_t dDNNFNode::NEGLIT = 13;
+const uint8_t dDNNFNode::SPACE = 14;
+vector<uint8_t> dDNNFNode::buffer;
+
+void dDNNFNode::WriteNibble(uint8_t to_write) {
+  if(high) {
+    buffer.push_back(to_write << 4);
+  } else {
+    buffer.back() += to_write;
+  }
+  high = !high;
+}
+
+void dDNNFNode::WriteID(uint64_t to_write) {
+  int8_t idx = 18;
+  uint64_t div = 1000000000000000000u;
+  while(to_write / div == 0 && idx > 0) {
+    idx--;
+    div /= 10;
+  }
+  while(idx >= 0) {
+    uint8_t nibble = to_write / div;
+    to_write -= nibble * div;
+    WriteNibble(nibble);
+    idx--;
+    div /= 10;
+  }
+  WriteNibble(SPACE);
+  assert(to_write == 0);
+}
 
 struct Mmpr {
  public:
