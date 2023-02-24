@@ -30,7 +30,6 @@ SET(SOURCES
 	src/preprocessor/graph.cpp 
 	src/preprocessor/subsumer.cpp
 	src/preprocessor/treedecomposition.cpp
-	src/decomposition.cpp
 	src/clhash/clhash.c
 )
 

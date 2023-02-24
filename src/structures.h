@@ -186,12 +186,6 @@ struct dDNNFNode {
   static uint64_t nodes;
   static uint64_t edges;
   static vector<uint8_t> buffer;
-  static bool high;
-  static const uint8_t AND;
-  static const uint8_t OR;
-  static const uint8_t LIT;
-  static const uint8_t NEGLIT;
-  static const uint8_t SPACE;
   dDNNFNode() {
     id = 0;
   }
@@ -218,11 +212,14 @@ struct dDNNFNode {
     if(IsAlgZero() || other.id == 1) {
       return *this;
     }
-    WriteNibble(AND);
-    WriteNibble(2);
-    dDNNFNode::WriteNibble(dDNNFNode::SPACE);
+    buffer.push_back('A');
+    buffer.push_back(' ');
+    buffer.push_back('2');
+    buffer.push_back(' ');
     WriteID(other.id);
+    buffer.push_back(' ');
     WriteID(id);
+    buffer.push_back('\n');
     dDNNFNode ret;
     edges += 2;
     ret.id = nodes++;
@@ -236,11 +233,16 @@ struct dDNNFNode {
       return *this;
     }
 
-    WriteNibble(OR);
-    WriteNibble(2);
-    dDNNFNode::WriteNibble(dDNNFNode::SPACE);
+    buffer.push_back('O');
+    buffer.push_back(' ');
+    buffer.push_back('0');
+    buffer.push_back(' ');
+    buffer.push_back('2');
+    buffer.push_back(' ');
     WriteID(other.id);
+    buffer.push_back(' ');
     WriteID(id);
+    buffer.push_back('\n');
     dDNNFNode ret;
     edges += 2;
     ret.id = nodes++;
@@ -254,11 +256,14 @@ struct dDNNFNode {
     if(IsAlgZero() || other.id == 1) {
       return *this;
     }
-    WriteNibble(AND);
-    WriteNibble(2);
-    WriteNibble(SPACE);
+    buffer.push_back('A');
+    buffer.push_back(' ');
+    buffer.push_back('2');
+    buffer.push_back(' ');
     WriteID(other.id);
+    buffer.push_back(' ');
     WriteID(id);
+    buffer.push_back('\n');
     edges += 2;
     id = nodes++;
     return *this;
@@ -280,11 +285,15 @@ struct dDNNFNode {
   static dDNNFNode FromString(string s) {
     int64_t lit = stoll(s.c_str());
     if(lit > 0) {
-      WriteNibble(LIT);
+      buffer.push_back('L');
+      buffer.push_back(' ');
     } else {
-      WriteNibble(NEGLIT);
+      buffer.push_back('L');
+      buffer.push_back(' ');
+      buffer.push_back('-');
     }
     WriteID(abs(lit));
+    buffer.push_back('\n');
     dDNNFNode ret;
     ret.id = nodes++;
     return ret;
@@ -292,28 +301,13 @@ struct dDNNFNode {
   uint64_t id;
 
   // buffer bookkeeping
-  static void WriteNibble(uint8_t to_write);
   static void WriteID(uint64_t to_write);
 };
 
 uint64_t dDNNFNode::nodes = 2;
 uint64_t dDNNFNode::edges = 0;
-bool dDNNFNode::high = true;
-const uint8_t dDNNFNode::AND = 10;
-const uint8_t dDNNFNode::OR = 11;
-const uint8_t dDNNFNode::LIT = 12;
-const uint8_t dDNNFNode::NEGLIT = 13;
-const uint8_t dDNNFNode::SPACE = 14;
 vector<uint8_t> dDNNFNode::buffer;
 
-void dDNNFNode::WriteNibble(uint8_t to_write) {
-  if(high) {
-    buffer.push_back(to_write << 4);
-  } else {
-    buffer.back() += to_write;
-  }
-  high = !high;
-}
 
 void dDNNFNode::WriteID(uint64_t to_write) {
   int8_t idx = 18;
@@ -325,11 +319,10 @@ void dDNNFNode::WriteID(uint64_t to_write) {
   while(idx >= 0) {
     uint8_t nibble = to_write / div;
     to_write -= nibble * div;
-    WriteNibble(nibble);
+    buffer.push_back(nibble + 48);
     idx--;
     div /= 10;
   }
-  WriteNibble(SPACE);
   assert(to_write == 0);
 }
 
