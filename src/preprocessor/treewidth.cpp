@@ -25,7 +25,7 @@ namespace sspp {
 
 namespace decomp {
 
-TreeDecomposition Treedecomp(const Graph& graph, double time, string tmp_dir) {
+TreeDecomposition Treedecomp(const Graph& graph, double time) {
 	int n = graph.n();
 	if (n == 0) {
 		TreeDecomposition dec(0, 0);

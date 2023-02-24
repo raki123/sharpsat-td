@@ -31,7 +31,6 @@ SET(SOURCES
 	src/preprocessor/subsumer.cpp
 	src/preprocessor/treewidth.cpp
 	src/preprocessor/twpp.cpp
-	src/decomposition.cpp
 	src/clhash/clhash.c
 )
 

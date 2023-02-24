@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
       return 0;
     }
     sspp::Graph primal(ins.vars, ins.clauses);
-    sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+    sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot);
     cout<<"c o Now solving. "<<glob_timer.get()<<endl;
     Solver<Smpz> theSolver(gen);
     theSolver.config() = config_;
@@ -278,7 +278,7 @@ int main(int argc, char *argv[]) {
         return 0;
       }
       sspp::Graph primal(ins.vars, ins.clauses);
-      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot);
       cout<<"c o Now solving. "<<glob_timer.get()<<endl;
       Solver<SDouble> theSolver(gen);
       theSolver.config() = config_;
@@ -316,7 +316,7 @@ int main(int argc, char *argv[]) {
         return 0;
       }
       sspp::Graph primal(ins.vars, ins.clauses);
-      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot);
       cout<<"c o Now solving. "<<glob_timer.get()<<endl;
       Solver<Smpr> theSolver(gen);
       theSolver.config() = config_;
@@ -351,7 +351,7 @@ int main(int argc, char *argv[]) {
         PrintType(ins);
       } else {
         sspp::Graph primal(ins.vars, ins.clauses);
-        sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+        sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot);
         cout<<"c o Now solving. "<<glob_timer.get()<<endl;
         Solver<instantdDNNFNode> theSolver(gen);
         theSolver.config() = config_;
@@ -394,7 +394,7 @@ int main(int argc, char *argv[]) {
         PrintType(ins);
       } else {
         sspp::Graph primal(ins.vars, ins.clauses);
-        sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+        sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot);
         cout<<"c o Now solving. "<<glob_timer.get()<<endl;
         Solver<dDNNFNode> theSolver(gen);
         theSolver.config() = config_;
@@ -404,9 +404,6 @@ int main(int argc, char *argv[]) {
         dDNNFNode ans1 = theSolver.solve(ins, tdecomp);
         ans1 * ins.weight_factor;
       }
-      size_t i = 0;
-      bool high = true;
-      uint8_t nibble;
       cout<<"c o Solved. "<<glob_timer.get()<<endl;
       ddnnf_fs <<"nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " <<  ins.vars << "\n";
       ddnnf_fs << (char *)dDNNFNode::buffer.data();
@@ -439,7 +436,7 @@ int main(int argc, char *argv[]) {
         return 0;
       }
       sspp::Graph primal(ins.vars, ins.clauses);
-      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot);
       cout<<"c o Now solving. "<<glob_timer.get()<<endl;
       Solver<MDouble> theSolver(gen);
       theSolver.config() = config_;
@@ -474,7 +471,7 @@ int main(int argc, char *argv[]) {
         return 0;
       }
       sspp::Graph primal(ins.vars, ins.clauses);
-      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot, tmp_dir);
+      sspp::TreeDecomposition tdecomp = sspp::decomp::Treedecomp(primal, decot);
       cout<<"c o Now solving. "<<glob_timer.get()<<endl;
       Solver<Mmpr> theSolver(gen);
       theSolver.config() = config_;

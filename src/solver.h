@@ -20,7 +20,6 @@
 
 #include <sys/time.h>
 
-#include "decomposition.h"
 #include <deque>
 
 enum retStateT {

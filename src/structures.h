@@ -186,12 +186,6 @@ struct dDNNFNode {
   static uint64_t nodes;
   static uint64_t edges;
   static vector<uint8_t> buffer;
-  static bool high;
-  static const uint8_t AND;
-  static const uint8_t OR;
-  static const uint8_t LIT;
-  static const uint8_t NEGLIT;
-  static const uint8_t SPACE;
   dDNNFNode() {
     id = 0;
   }
@@ -307,7 +301,6 @@ struct dDNNFNode {
   uint64_t id;
 
   // buffer bookkeeping
-  static void WriteNibble(uint8_t to_write);
   static void WriteID(uint64_t to_write);
 };
 
