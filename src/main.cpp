@@ -413,6 +413,7 @@ int main(int argc, char *argv[]) {
       }
       cout<<"c o Solved. "<<glob_timer.get()<<endl;
       ddnnf_fs <<"nnf " << dDNNFNode::nodes << " " << dDNNFNode::edges << " " <<  ins.vars << "\n";
+      dDNNFNode::buffer.push_back('\0');
       ddnnf_fs << (char *)dDNNFNode::buffer.data();
       ddnnf_fs.close();
       cout<<"c o Finished outputting dDNNF. "<<glob_timer.get()<<endl;
