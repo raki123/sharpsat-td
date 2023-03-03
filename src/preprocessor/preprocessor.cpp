@@ -605,7 +605,7 @@ bool Preprocessor<T_num>::EliminateDefSimplicial() {
 						assumps.push_back(PosLit(extra[tv]+simps));
 					}
 				}
-				if (!oracle.Solve(assumps)) {
+				if ((weighted && T_num::Idempotent(weights[PosLit(var_map[v])])) || !oracle.Solve(assumps)) {
 					def[v] = 1;
 					defs++;
 				}

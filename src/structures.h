@@ -85,6 +85,9 @@ struct SDouble {
     ret.has = ret.n != 0;
     return ret;
   }
+  static bool Idempotent(const SDouble d) {
+    return !d.has;
+  }
  private:
   double n = 0;
   bool has = false;
@@ -172,6 +175,9 @@ struct instantdDNNFNode {
     instantdDNNFNode ret;
     ret.id = nodes++;
     return ret;
+  }
+  static bool Idempotent(const instantdDNNFNode d) {
+    return d.id < 2;
   }
   uint64_t id;
 };
@@ -298,6 +304,9 @@ struct dDNNFNode {
     ret.id = nodes++;
     return ret;
   }
+  static bool Idempotent(const dDNNFNode d) {
+    return d.id < 2;
+  }
   uint64_t id;
 
   // buffer bookkeeping
@@ -420,6 +429,9 @@ struct Mmpr {
     }
     return ret;
   }
+  static bool Idempotent(const Mmpr d) {
+    return d.IsAlgZero();
+  }
  private:
   std::vector<mpfr::mpreal> n;
   bool has;
@@ -520,6 +532,9 @@ struct MDouble {
     }
     return ret;
   }
+  static bool Idempotent(const MDouble d) {
+    return d.IsAlgZero();
+  }
  private:
   std::vector<double> n;
   bool has;
@@ -591,6 +606,9 @@ struct Smpr {
     ret.has = ret.n != 0;
     return ret;
   }
+  static bool Idempotent(const Smpr d) {
+    return d.IsAlgZero();
+  }
  private:
   mpfr::mpreal n = 0;
   bool has = false;
@@ -660,6 +678,9 @@ struct Smpz {
     ret.n = stoi(s);
     ret.has = ret.n != 0;
     return ret;
+  }
+  static bool Idempotent(const Smpz d) {
+    return d.IsAlgZero();
   }
  private:
   mpz_class n = 0;
