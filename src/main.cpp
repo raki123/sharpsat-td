@@ -624,7 +624,7 @@ int main(int argc, char *argv[])
     {
       PrintSat(false);
       PrintType(ins);
-      PrintExact((mpfr::mpreal)0);
+      PrintComplex(Complex<double>::FromString("0;0"));
       return 0;
     }
     auto ans0 = ins.weight_factor;
